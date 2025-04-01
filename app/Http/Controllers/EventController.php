@@ -16,9 +16,49 @@ class EventController extends Controller
         $this->middleware('admin')->only(['create', 'store', 'edit', 'update']);
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $events = Event::with('category')->get();
+        // Memulai query dasar untuk events
+        $query = Event::with(['category', 'tickets.orders']);
+
+        // Filter berdasarkan parameter pencarian
+        if ($request->filled('search')) {
+            $searchTerm = '%' . $request->search . '%';
+            $query->where(function($q) use ($searchTerm) {
+                $q->where('title', 'like', $searchTerm)
+                  ->orWhere('location', 'like', $searchTerm)
+                  ->orWhere('description', 'like', $searchTerm);
+            });
+        }
+
+        // Filter berdasarkan kategori
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+
+        // Filter berdasarkan status (upcoming, ongoing, past)
+        if ($request->filled('status')) {
+            $now = now();
+            if ($request->status === 'upcoming') {
+                $query->where('start_event', '>', $now);
+            } elseif ($request->status === 'ongoing') {
+                $query->where('start_event', '<=', $now)
+                      ->where('end_event', '>=', $now);
+            } elseif ($request->status === 'past') {
+                $query->where('end_event', '<', $now);
+            }
+        }
+
+        // Dapatkan hasil query
+        $events = $query->get();
+
+        // Dapatkan semua kategori untuk filter dropdown
+        $categories = Category::all();
+
+        if (request()->is('admin*')) {
+            return view('admin.events.index', compact('events', 'categories'));
+        }
+
         return view('events.index', compact('events'));
     }
 
@@ -44,7 +84,7 @@ class EventController extends Controller
     public function create()
     {
         $categories = Category::all();
-        return view('events.create', compact('categories'));
+        return view('admin.events.create', compact('categories'));
     }
 
     public function store(Request $request)
@@ -59,9 +99,16 @@ class EventController extends Controller
             'end_sale' => 'required|date',
             'thumbnail' => 'required|image',
             'category_id' => 'required|exists:categories,id',
+            'has_stage_layout' => 'nullable|boolean',
+            'stage_layout' => 'nullable|required_if:has_stage_layout,1|image',
         ]);
 
         $path = $request->file('thumbnail')->store('thumbnails', 'public');
+
+        $stageLayoutPath = null;
+        if ($request->has('has_stage_layout') && $request->hasFile('stage_layout')) {
+            $stageLayoutPath = $request->file('stage_layout')->store('stage_layouts', 'public');
+        }
 
         Event::create([
             'title' => $request->title,
@@ -72,6 +119,7 @@ class EventController extends Controller
             'start_sale' => $request->start_sale,
             'end_sale' => $request->end_sale,
             'thumbnail' => $path,
+            'stage_layout' => $stageLayoutPath,
             'category_id' => $request->category_id,
             'uid_admin' => Auth::id(),
         ]);
@@ -81,13 +129,16 @@ class EventController extends Controller
 
     public function show(Event $event)
     {
+        if (request()->is('admin*')) {
+            return view('admin.events.show', compact('event'));
+        }
         return view('events.show', compact('event'));
     }
 
     public function edit(Event $event)
     {
         $categories = Category::all();
-        return view('events.edit', compact('event', 'categories'));
+        return view('admin.events.edit', compact('event', 'categories'));
     }
 
     public function update(Request $request, Event $event)
@@ -101,15 +152,12 @@ class EventController extends Controller
             'start_sale' => 'required|date',
             'end_sale' => 'required|date',
             'thumbnail' => 'nullable|image',
+            'has_stage_layout' => 'nullable|boolean',
+            'stage_layout' => 'nullable|image',
             'category_id' => 'required|exists:categories,id',
         ]);
 
-        if ($request->hasFile('thumbnail')) {
-            $path = $request->file('thumbnail')->store('thumbnails', 'public');
-            $event->thumbnail = $path;
-        }
-
-        $event->update([
+        $data = [
             'title' => $request->title,
             'description' => $request->description,
             'location' => $request->location,
@@ -118,7 +166,23 @@ class EventController extends Controller
             'start_sale' => $request->start_sale,
             'end_sale' => $request->end_sale,
             'category_id' => $request->category_id,
-        ]);
+        ];
+
+        if ($request->hasFile('thumbnail')) {
+            $data['thumbnail'] = $request->file('thumbnail')->store('thumbnails', 'public');
+        }
+
+        // Handling stage layout
+        if ($request->has('has_stage_layout')) {
+            if ($request->hasFile('stage_layout')) {
+                $data['stage_layout'] = $request->file('stage_layout')->store('stage_layouts', 'public');
+            }
+        } else {
+            // Remove stage layout if checkbox is unchecked
+            $data['stage_layout'] = null;
+        }
+
+        $event->update($data);
 
         return redirect()->route('events.index')->with('success', 'Event updated successfully.');
     }

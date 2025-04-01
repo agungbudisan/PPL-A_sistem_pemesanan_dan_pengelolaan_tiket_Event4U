@@ -19,6 +19,13 @@ class Event extends Model
         'category_id',
         'uid_admin'
     ];
+    
+    protected $casts = [
+        'start_event' => 'datetime',
+        'end_event' => 'datetime',
+        'start_sale' => 'datetime',
+        'end_sale' => 'datetime'
+    ];
 
     public function category()
     {

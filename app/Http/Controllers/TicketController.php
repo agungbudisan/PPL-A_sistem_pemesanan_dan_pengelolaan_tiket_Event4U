@@ -11,18 +11,19 @@ class TicketController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth');
+        $this->middleware('auth')->except(['show']);
+        $this->middleware('admin')->except(['show']);
     }
 
     public function index(Event $event)
     {
         $tickets = $event->tickets;
-        return view('tickets.index', compact('tickets', 'event'));
+        return view('admin.tickets.index', compact('tickets', 'event'));
     }
 
     public function create(Event $event)
     {
-        return view('tickets.create', compact('event'));
+        return view('admin.tickets.create', compact('event'));
     }
 
     public function store(Request $request, Event $event)
@@ -41,7 +42,7 @@ class TicketController extends Controller
             'quota_avail' => $request->quota_avail,
         ]);
 
-        return redirect()->route('tickets.index', $event)->with('success', 'Ticket created successfully.');
+        return redirect()->route('events.tickets.index', $event)->with('success', 'Ticket created successfully.');
     }
 
     public function show(Ticket $ticket)
@@ -51,7 +52,7 @@ class TicketController extends Controller
 
     public function edit(Ticket $ticket)
     {
-        return view('tickets.edit', compact('ticket'));
+        return view('admin.tickets.edit', compact('ticket'));
     }
 
     public function update(Request $request, Ticket $ticket)
@@ -70,12 +71,14 @@ class TicketController extends Controller
             'quota_avail' => $request->quota_avail,
         ]);
 
-        return redirect()->route('tickets.index', $ticket->event)->with('success', 'Ticket updated successfully.');
+        return redirect()->route('events.tickets.index', $ticket->event)->with('success', 'Ticket updated successfully.');
     }
 
     public function destroy(Ticket $ticket)
     {
+        $event = $ticket->event;
         $ticket->delete();
-        return redirect()->route('tickets.index', $ticket->event)->with('success', 'Ticket deleted successfully.');
+
+        return redirect()->route('events.tickets.index', $event)->with('success', 'Ticket deleted successfully.');
     }
 }
