@@ -6,19 +6,14 @@
 
     <!-- Event Selector -->
     <div class="w-full md:w-auto">
-        <form action="{{ route('admin.analytics') }}" method="GET" class="flex">
-            <select name="eventId" id="eventId" class="block w-full rounded-l-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:focus:ring-indigo-400 dark:focus:border-indigo-400 sm:text-sm">
-                <option value="">Pilih Acara</option>
-                @foreach($events as $evt)
-                    <option value="{{ $evt->id }}" {{ isset($event) && $event->id == $evt->id ? 'selected' : '' }}>
-                        {{ $evt->title }}
-                    </option>
-                @endforeach
-            </select>
-            <button type="submit" class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-r-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 focus:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                <i class="fas fa-filter"></i>
-            </button>
-        </form>
+        <select id="eventSelect" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:focus:ring-indigo-400 dark:focus:border-indigo-400 sm:text-sm" onchange="selectEvent(this.value)">
+            <option value="">Pilih Acara</option>
+            @foreach($events as $evt)
+                <option value="{{ $evt->id }}" {{ isset($event) && $event->id == $evt->id ? 'selected' : '' }}>
+                    {{ $evt->title }}
+                </option>
+            @endforeach
+        </select>
     </div>
 </div>
 
@@ -59,7 +54,7 @@
                         @if(Str::startsWith($event->category->icon, ['fa-', 'fas ', 'far ', 'fab ']))
                             <i class="fas {{ $event->category->icon }} text-white"></i>
                         @else
-                            <img src="{{ asset('storage/' . $event->category->icon) }}" alt="{{ $event->category->name }}" class="h-6 w-6 object-cover">
+                            <i class="fas fa-tag text-white"></i>
                         @endif
                     @else
                         <i class="fas fa-tag text-white"></i>
@@ -182,8 +177,19 @@
 
 @push('scripts')
 <script>
+    function selectEvent(eventId) {
+        if (eventId) {
+            window.location.href = "{{ route('admin.analytics') }}/" + eventId;
+        } else {
+            window.location.href = "{{ route('admin.analytics') }}";
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         @if(isset($event) && isset($chartData))
+        // Debug output to console
+        console.log("Chart data available:", @json($chartData));
+
         // Initialize chart
         var options = {
             chart: {
@@ -238,6 +244,8 @@
 
         var chart = new ApexCharts(document.querySelector("#sales-chart"), options);
         chart.render();
+        @else
+        console.log("Chart data not available");
         @endif
     });
 </script>
