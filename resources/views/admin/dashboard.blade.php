@@ -113,34 +113,51 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Sample data for the chart
-        // In a real application, you'd pass this data from the controller
-        const categories = @json($categories ?? []);
-        const eventCounts = @json($eventCounts ?? []); // You need to add this to your controller
+        const categoryNames = @json($categoryNames ?? []);
+        const eventCounts = @json($eventCounts ?? []);
 
         // Initialize the chart
-        var options = {
-            chart: {
-                type: 'pie',
-                height: 350
-            },
-            series: [44, 55, 13, 43, 22], // This should be replaced with real data
-            labels: ['Category 1', 'Category 2', 'Category 3', 'Category 4', 'Category 5'], // This should be replaced with real data
-            responsive: [{
-                breakpoint: 480,
-                options: {
-                    chart: {
-                        width: 200
-                    },
-                    legend: {
-                        position: 'bottom'
+        if (categoryNames.length > 0 && eventCounts.length > 0) {
+            // Initialize the chart dengan data dari database
+            var options = {
+                chart: {
+                    type: 'pie',
+                    height: 350
+                },
+                series: eventCounts, // Data jumlah event per kategori dari database
+                labels: categoryNames, // Nama-nama kategori dari database
+                responsive: [{
+                    breakpoint: 480,
+                    options: {
+                        chart: {
+                            width: 200
+                        },
+                        legend: {
+                            position: 'bottom'
+                        }
                     }
+                }],
+                colors: ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#F97316', '#14B8A6', '#6366F1'],
+                tooltip: {
+                    y: {
+                        formatter: function(value) {
+                            return value + ' event' + (value > 1 ? 's' : '');
+                        }
+                    }
+                },
+                legend: {
+                    position: 'bottom',
+                    horizontalAlign: 'center',
+                    fontSize: '14px'
                 }
-            }]
-        };
+            };
 
-        var chart = new ApexCharts(document.querySelector("#category-chart"), options);
-        chart.render();
+            var chart = new ApexCharts(document.querySelector("#category-chart"), options);
+            chart.render();
+        } else {
+            // Jika data tidak tersedia, tampilkan pesan kosong
+            document.querySelector("#category-chart").innerHTML = '<div class="flex items-center justify-center h-full"><p class="text-gray-500">Tidak ada data kategori untuk ditampilkan.</p></div>';
+        }
     });
 </script>
 @endpush
