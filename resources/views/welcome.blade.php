@@ -27,22 +27,7 @@
             <h3 class="text-3xl font-bold mb-4">Event Recommendations</h3>
             <div class="grid md:grid-cols-3 gap-6">
                 @forelse($events as $event)
-                    <a href="{{ route('events.show', $event->id) }}" class="bg-[rgba(156,160,171,0.60)] p-4 rounded shadow block hover:shadow-lg transition duration-300">
-                        <div class="aspect-[16/9]">
-                            <img src="{{ asset('storage/' . $event->thumbnail) }}" class="w-full h-full object-cover rounded" alt="{{ $event->title }}">
-                        </div>
-                        <h4 class="mt-2 font-bold uppercase">{{ $event->title }}</h4>
-                        <p class="text-sm">{{ date('d F Y', strtotime($event->start_event)) }}</p>
-
-                        @php
-                            $minPrice = $event->tickets->min('price') ?? 0;
-                            $maxPrice = $event->tickets->max('price') ?? 0;
-                        @endphp
-
-                        <p class="font-bold text-red-600">
-                            Rp{{ number_format($minPrice, 0, ',', '.') }} - Rp{{ number_format($maxPrice, 0, ',', '.') }}
-                        </p>
-                    </a>
+                    <x-event-card :event="$event" />
                 @empty
                     <p class="text-gray-500">No upcoming events available.</p>
                 @endforelse
@@ -79,24 +64,10 @@
         <section class="mt-8">
             <h3 class="text-3xl font-bold mb-4">Category</h3>
             <div class="grid grid-cols-4 md:grid-cols-4 gap-6">
-                <div class="bg-[rgba(156,160,171,0.60)] w-60 p-3 rounded shadow flex flex-col items-center justify-center">
-                    <div class="w-full aspect-square">
-                        <img src="/images/festival.png" class="w-full h-full object-cover rounded">
-                    </div>
-                    <p class="text-lg text-center font-bold mt-2">Festival</p>
-                </div>
-                <div class="bg-[rgba(156,160,171,0.60)] w-60 p-3 rounded shadow flex flex-col items-center justify-center">
-                    <div class="w-full aspect-square">
-                        <img src="/images/konser.png" class="w-full h-full object-cover rounded">
-                    </div>
-                    <p class="text-lg text-center font-bold mt-2">Konser</p>
-                </div>
-                <div class="bg-[rgba(156,160,171,0.60)] w-60 p-3 rounded shadow flex flex-col items-center justify-center">
-                    <div class="w-full aspect-square">
-                        <img src="/images/pameran.png" class="w-full h-full object-cover rounded">
-                    </div>
-                    <p class="text-lg text-center font-bold mt-2">Pameran</p>
-                </div>
+                <x-category-card image="/images/festival.png" title="Festival" />
+                <x-category-card image="/images/konser.png" title="Konser" />
+                <x-category-card image="/images/pameran.png" title="Pameran" />
+
                 <!-- Tombol Selengkapnya -->
                 <a href="{{ route('categories.index') }}" class="flex flex-col items-center justify-center">
                     <div class="w-56 h-56 flex items-center justify-center bg-[rgba(156,160,171,0.60)] rounded-full relative">
