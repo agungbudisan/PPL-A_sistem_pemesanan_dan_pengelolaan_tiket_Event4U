@@ -8,6 +8,7 @@ use App\Http\Controllers\TicketController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PaymentController;
 use Illuminate\Support\Facades\Route;
+use App\Models\Event;
 
 Route::get('/', function () {
     return view('welcome');
@@ -59,6 +60,25 @@ Route::middleware('admin')->prefix('admin')->group(function () {
 
     // Category Management
     Route::resource('categories', CategoryController::class);
+});
+
+// Ambil Event untuk Recommendation
+Route::get('/', function () {
+    $events = Event::where('start_event', '>', now())
+        ->orderBy('start_event', 'asc')
+        ->limit(3)
+        ->with(['tickets' => function ($query) {
+            $query->select('event_id', 'price');
+        }])
+        ->get()
+        ->map(function ($event) {
+            $minPrice = $event->tickets->min('price');
+            $maxPrice = $event->tickets->max('price');
+            $event->price_range = $minPrice === $maxPrice ? "Rp" . number_format($minPrice) : "Rp" . number_format($minPrice) . " - Rp" . number_format($maxPrice);
+            return $event;
+        });
+
+    return view('welcome', compact('events'));
 });
 
 require __DIR__.'/auth.php';
