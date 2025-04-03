@@ -28,8 +28,8 @@ class DashboardController extends Controller
             ->get();
 
         $categoryData = Category::withCount('events')->get();
-        $categoryNames = $categoryData->pluck('name');
-        $eventCounts = $categoryData->pluck('events_count');
+        $categoryNames = $categoryData->pluck('name')->toArray();
+        $eventCounts = $categoryData->pluck('events_count')->toArray();
 
         return view('admin.dashboard', array_merge(compact(
             'totalEvents',
