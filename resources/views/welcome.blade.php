@@ -6,7 +6,7 @@
     <title>Event 4 U</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="bg-gray-100 text-gray-900" style="background-image: url('/images/main_bg.png'); background-repeat: repeat;">
+<body class="bg-gray-100 text-gray-900">
 
     <!-- Navbar -->
     @include('components.navbar')
@@ -23,7 +23,7 @@
         </section>
 
         <!-- Event Recommendations -->
-        <section class="mt-8">
+        <section class="mt-10">
             <h3 class="text-3xl font-bold mb-4">Event Recommendations</h3>
             <div class="grid md:grid-cols-3 gap-6">
                 @forelse($events as $event)
@@ -36,24 +36,24 @@
 
 
         <!-- Top Events -->
-        <section class="mt-8 bg-[#7B0015] text-white p-6 rounded">
-            <h3 class="text-1xl font-bold mb-4">Top Events !</h3>
+        <section class="mt-10 bg-[#7B0015] text-white p-6 rounded">
+            <h3 class="text-2xl font-bold mb-4">Top Events !</h3>
             <div class="flex justify-between">
                 <div class="flex items-center w-1/3">
-                    <p class="text-8xl font-bold flex-[1] text-right pr-4">1</p>
-                    <div class="flex-[2] aspect-[16/9]">
+                    <p class="text-8xl font-bold flex-[1] text-right pr-8">1</p>
+                    <div class="flex-[1] aspect-[16/9]">
                         <img src="/images/event_1.png" class="w-full h-full object-cover rounded">
                     </div>
                 </div>
                 <div class="flex items-center w-1/3">
-                    <p class="text-8xl font-bold flex-[1] text-right pr-4">2</p>
-                    <div class="flex-[2] aspect-[16/9]">
+                    <p class="text-8xl font-bold flex-[1] text-right pr-8">2</p>
+                    <div class="flex-[1] aspect-[16/9]">
                         <img src="/images/event_2.png" class="w-full h-full object-cover rounded">
                     </div>
                 </div>
                 <div class="flex items-center w-1/3">
-                    <p class="text-8xl font-bold flex-[1] text-right pr-4">3</p>
-                    <div class="flex-[2] aspect-[16/9]">
+                    <p class="text-8xl font-bold flex-[1] text-right pr-8">3</p>
+                    <div class="flex-[1] aspect-[16/9]">
                         <img src="/images/event_3.png" class="w-full h-full object-cover rounded">
                     </div>
                 </div>
@@ -61,31 +61,43 @@
         </section>
 
         <!-- Category -->
-        <section class="mt-8">
-            <h3 class="text-3xl font-bold mb-4">Category</h3>
-            <div class="grid grid-cols-4 md:grid-cols-4 gap-6">
-                <x-category-card image="/images/festival.png" title="Festival" />
-                <x-category-card image="/images/konser.png" title="Konser" />
-                <x-category-card image="/images/pameran.png" title="Pameran" />
+        <section class="mt-10">
+            <h3 class="text-3xl font-bold mb-6 flex items-center">
+                Category
+                <!-- Tombol Panah Arah Bawah untuk Toggle -->
+                <button id="toggle-button" class="ml-2 text-lg text-red-500 font-bold flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </button>
 
-                <!-- Tombol Selengkapnya -->
-                <a href="{{ route('categories.index') }}" class="flex flex-col items-center justify-center">
-                    <div class="w-56 h-56 flex items-center justify-center bg-[rgba(156,160,171,0.60)] rounded-full relative">
-                        <img src="/images/selengkapnya.png" class="w-40 h-40 object-contain">
-                        <p class="absolute bottom-2 left-1/2 transform -translate-x-1/2 text-lg font-bold text-red-600">Selengkapnya...</p>
-                    </div>
+                <!-- Tombol Selengkapnya yang tersembunyi -->
+                <a id="show-more-link" href="{{ route('categories.index') }}" class="ml-4 text-xl text-red-600 hidden">
+                    <span class="whitespace-nowrap">All Category</span>
                 </a>
+            </h3>
+
+            <!-- Wrapper untuk kategori -->
+            <div class="container mx-auto px-4 flex justify-center">
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                    <x-category-card image="/images/festival.png" title="Festival" />
+                    <x-category-card image="/images/konser.png" title="Konser" />
+                    <x-category-card image="/images/pameran.png" title="Pameran" />
+                    <x-category-card image="/images/nobar.png" title="Nonton Bareng" />
+                    <x-category-card image="/images/pertunjukan.png" title="Pertunjukan" />
+                    <x-category-card image="/images/seminar.png" title="Seminar" />
+                </div>
             </div>
         </section>
 
 
         <!-- Contac Us -->
-        <section class=" justify-center mt-8">
+        <section class=" justify-center mt-10">
             <div class="grid grid-cols-1 md:grid-cols-2 max-w-6xl mx-auto p-4 gap-4">
                 <div class="bg-white p-8 rounded shadow">
                     <h3 class="text-3xl font-bold">Contact Us</h3>
 
-                    <div class="flex justify-between mt-12">
+                    <div class="flex justify-between mt-10">
                         <div class="flex-1">
                             <h4 class="text-xs">OUR ADDRESS</h4>
                         </div>
@@ -126,4 +138,15 @@
     @include('components.footer')
 
 </body>
+
+<script>
+    const toggleButton = document.getElementById('toggle-button');
+    const showMoreLink = document.getElementById('show-more-link');
+
+    toggleButton.addEventListener('click', function() {
+        // Toggle visibilitas tombol "Selengkapnya"
+        showMoreLink.classList.toggle('hidden');
+    });
+</script>
+
 </html>

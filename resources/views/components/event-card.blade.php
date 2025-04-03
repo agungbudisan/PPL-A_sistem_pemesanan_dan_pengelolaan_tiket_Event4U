@@ -1,4 +1,4 @@
-<a href="{{ route('events.show', $event->id) }}" class="bg-[rgba(156,160,171,0.60)] p-4 rounded shadow block hover:shadow-lg transition duration-300">
+<a href="{{ route('events.show', $event->id) }}" class="bg-[rgba(156,160,171,0.60)] p-4 rounded-[25px] shadow block hover:shadow-lg transition duration-300">
     <div class="aspect-[16/9]">
         <img src="{{ asset('storage/' . $event->thumbnail) }}" class="w-full h-full object-cover rounded" alt="{{ $event->title }}">
     </div>
