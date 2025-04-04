@@ -51,11 +51,7 @@
             <div class="flex items-center">
                 <div class="flex-shrink-0 bg-yellow-500 rounded-full p-3">
                     @if(isset($event->category) && isset($event->category->icon))
-                        @if(Str::startsWith($event->category->icon, ['fa-', 'fas ', 'far ', 'fab ']))
-                            <i class="fas {{ $event->category->icon }} text-white"></i>
-                        @else
-                            <i class="fas fa-tag text-white"></i>
-                        @endif
+                        <img src="{{ $event->category->icon }}" alt="{{ $event->category->name }}" class="h-6 w-6 object-cover">
                     @else
                         <i class="fas fa-tag text-white"></i>
                     @endif
@@ -199,6 +195,7 @@
                 toolbar: {
                     show: true
                 },
+                foreColor: document.querySelector('html').classList.contains('dark') ? '#e5e7eb' : '#374151'
             },
             plotOptions: {
                 bar: {
