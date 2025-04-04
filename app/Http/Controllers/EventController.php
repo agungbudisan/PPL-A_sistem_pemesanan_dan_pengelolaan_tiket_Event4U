@@ -13,7 +13,7 @@ class EventController extends Controller
     public function __construct()
     {
         $this->middleware('auth')->except(['index', 'show']);
-        $this->middleware('admin')->only(['create', 'store', 'edit', 'update', 'destroy']);
+        $this->middleware('admin')->only(['create', 'store', 'edit', 'update', 'destroy', 'adminShow']);
     }
 
     public function index(Request $request)
@@ -58,27 +58,20 @@ class EventController extends Controller
         if (request()->is('admin*')) {
             return view('admin.events.index', compact('events', 'categories'));
         }
-
-        return view('events.index', compact('events'));
+        
+        return view('events.index', compact('events', 'categories'));
     }
 
-    public function showAnalytics($eventId)
+    public function show(Event $event)
     {
-        $event = Event::with('tickets')->findOrFail($eventId);
+        // Method ini untuk public user
+        return view('events.show', compact('event'));
+    }
 
-        // Menghitung total penjualan berdasarkan tiket yang terjual
-        $totalSales = 0;
-        foreach ($event->tickets as $ticket) {
-            $totalSales += $ticket->price * $ticket->orders->sum('quantity'); // Jumlahkan harga tiket dengan jumlah yang dipesan
-        }
-
-        // Menghitung total tiket yang terjual
-        $totalTicketsSold = 0;
-        foreach ($event->tickets as $ticket) {
-            $totalTicketsSold += $ticket->orders->sum('quantity');
-        }
-
-        return view('events.analytics', compact('event', 'totalSales', 'totalTicketsSold'));
+    public function adminShow(Event $event)
+    {
+        // Method ini untuk admin
+        return view('admin.events.show', compact('event'));
     }
 
     public function create()
@@ -124,15 +117,7 @@ class EventController extends Controller
             'uid_admin' => Auth::id(),
         ]);
 
-        return redirect()->route('events.index')->with('success', 'Event created successfully.');
-    }
-
-    public function show(Event $event)
-    {
-        if (request()->is('admin*')) {
-            return view('admin.events.show', compact('event'));
-        }
-        return view('events.show', compact('event'));
+        return redirect()->route('admin.events.index')->with('success', 'Event created successfully.');
     }
 
     public function edit(Event $event)
@@ -184,12 +169,31 @@ class EventController extends Controller
 
         $event->update($data);
 
-        return redirect()->route('events.index')->with('success', 'Event updated successfully.');
+        return redirect()->route('admin.events.index')->with('success', 'Event updated successfully.');
     }
 
     public function destroy(Event $event)
     {
         $event->delete();
-        return redirect()->route('events.index')->with('success', 'Event deleted successfully.');
+        return redirect()->route('admin.events.index')->with('success', 'Event deleted successfully.');
+    }
+
+    public function showAnalytics($eventId)
+    {
+        $event = Event::with('tickets')->findOrFail($eventId);
+
+        // Menghitung total penjualan berdasarkan tiket yang terjual
+        $totalSales = 0;
+        foreach ($event->tickets as $ticket) {
+            $totalSales += $ticket->price * $ticket->orders->sum('quantity'); // Jumlahkan harga tiket dengan jumlah yang dipesan
+        }
+
+        // Menghitung total tiket yang terjual
+        $totalTicketsSold = 0;
+        foreach ($event->tickets as $ticket) {
+            $totalTicketsSold += $ticket->orders->sum('quantity');
+        }
+
+        return view('admin.analytics', compact('event', 'totalSales', 'totalTicketsSold'));
     }
 }

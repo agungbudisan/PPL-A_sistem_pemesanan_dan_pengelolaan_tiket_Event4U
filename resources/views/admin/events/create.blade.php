@@ -207,7 +207,7 @@
 
         <form
             id="eventForm"
-            action="{{ isset($event) ? route('events.update', $event) : route('events.store') }}"
+            action="{{ isset($event) ? route('admin.events.update', $event) : route('admin.events.store') }}"
             method="POST"
             enctype="multipart/form-data"
         >
