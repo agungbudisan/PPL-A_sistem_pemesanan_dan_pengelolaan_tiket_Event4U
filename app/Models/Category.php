@@ -8,7 +8,7 @@ class Category extends Model
 {
     protected $fillable = [
         'name',
-        'icon', // Sekarang berisi path file gambar
+        'icon',
         'description'
     ];
 

@@ -32,11 +32,17 @@ class CategoryController extends Controller
             'description' => 'nullable|string'
         ]);
 
-        $path = $request->file('icon')->store('categories', 'public');
+        if ($request->hasFile('icon')) {
+            $image = $request->file('icon');
+            $imageData = file_get_contents($image->getRealPath());
+            $base64Image = base64_encode($imageData);
+            $mimeType = $image->getClientMimeType();
+            $iconData = 'data:' . $mimeType . ';base64,' . $base64Image;
+        }
 
         Category::create([
             'name' => $request->name,
-            'icon' => $path,
+            'icon' => $iconData ?? null,
             'description' => $request->description
         ]);
 
@@ -68,8 +74,11 @@ class CategoryController extends Controller
         ];
 
         if ($request->hasFile('icon')) {
-            $path = $request->file('icon')->store('categories', 'public');
-            $data['icon'] = $path;
+            $image = $request->file('icon');
+            $imageData = file_get_contents($image->getRealPath());
+            $base64Image = base64_encode($imageData);
+            $mimeType = $image->getClientMimeType();
+            $data['icon'] = 'data:' . $mimeType . ';base64,' . $base64Image;
         }
 
         $category->update($data);

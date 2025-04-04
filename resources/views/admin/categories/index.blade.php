@@ -30,11 +30,8 @@
         <div class="flex justify-between">
             <div class="flex items-center">
                 <div class="flex-shrink-0 bg-indigo-100 dark:bg-indigo-900 rounded-full p-3">
-                    @if(Str::startsWith($category->icon, ['fa-', 'fas ', 'far ', 'fab ']))
-                        <i class="fas {{ $category->icon }} text-indigo-600 dark:text-indigo-400"></i>
-                    @else
-                        <img src="{{ asset('storage/' . $category->icon) }}" alt="{{ $category->name }}" class="h-6 w-6 object-cover">
-                    @endif
+                    <!-- Display the icon directly as an image from base64 data -->
+                    <img src="{{ $category->icon }}" alt="{{ $category->name }}" class="h-6 w-6 object-cover">
                 </div>
                 <div class="ml-4">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-white">{{ $category->name }}</h3>

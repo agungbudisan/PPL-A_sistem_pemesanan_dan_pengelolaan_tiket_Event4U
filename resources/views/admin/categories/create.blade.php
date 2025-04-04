@@ -18,13 +18,17 @@
             enctype="multipart/form-data"
             x-data="{
                 name: '{{ old('name', $category->name ?? '') }}',
-                previewImage: '{{ isset($category) && $category->icon ? asset('storage/' . $category->icon) : '' }}',
+                previewImage: '{{ isset($category) && $category->icon ? $category->icon : '' }}',
                 description: '{{ old('description', $category->description ?? '') }}',
 
                 handleImageUpload(event) {
                     const file = event.target.files[0];
                     if (file) {
-                        this.previewImage = URL.createObjectURL(file);
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            this.previewImage = e.target.result;
+                        };
+                        reader.readAsDataURL(file);
                     }
                 },
 
