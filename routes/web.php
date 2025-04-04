@@ -51,9 +51,9 @@ Route::middleware('admin')->prefix('admin')->group(function () {
     Route::get('/events/{event}', [EventController::class, 'show'])->name('admin.events.show');
 
     // Ticket Management untuk Event tertentu
-    Route::get('/events/{event}/tickets', [TicketController::class, 'index'])->name('admin.events.tickets.index');
-    Route::get('/events/{event}/tickets/create', [TicketController::class, 'create'])->name('admin.events.tickets.create');
-    Route::post('/events/{event}/tickets', [TicketController::class, 'store'])->name('admin.events.tickets.store');
+    Route::get('/events/{event}/tickets', [TicketController::class, 'index'])->name('admin.tickets.index');
+    Route::get('/events/{event}/tickets/create', [TicketController::class, 'create'])->name('admin.tickets.create');
+    Route::post('/events/{event}/tickets', [TicketController::class, 'store'])->name('admin.tickets.store');
 
     // Ticket Resource untuk operasi edit, update, destroy
     Route::resource('tickets', TicketController::class)->only(['edit', 'update', 'destroy']);

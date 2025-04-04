@@ -3,7 +3,7 @@
 @section('content')
 <div class="flex justify-between items-center mb-6">
     <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Tambah Tiket Baru: {{ $event->title }}</h1>
-    <a href="{{ route('admin.events.tickets.index', $event) }}" class="inline-flex items-center px-4 py-2 bg-gray-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150">
+    <a href="{{ route('admin.tickets.index', $event) }}" class="inline-flex items-center px-4 py-2 bg-gray-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150">
         <i class="fas fa-arrow-left mr-2"></i> Kembali
     </a>
 </div>
@@ -39,7 +39,7 @@
     class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden"
 >
     <div class="p-6">
-        <form action="{{ route('admin.events.tickets.store', $event) }}" method="POST">
+        <form action="{{ route('admin.tickets.store', $event) }}" method="POST">
             @csrf
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Jenis Tiket -->

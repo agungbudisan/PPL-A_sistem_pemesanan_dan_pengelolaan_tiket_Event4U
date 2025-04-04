@@ -50,7 +50,7 @@
                         </a>
                     </li>
                     <li>
-                        <a href="{{ route('events.index') }}" class="flex items-center p-2 text-gray-300 rounded-lg hover:bg-gray-700 {{ request()->routeIs('events.*') ? 'bg-gray-700' : '' }}">
+                        <a href="{{ route('admin.events.index') }}" class="flex items-center p-2 text-gray-300 rounded-lg hover:bg-gray-700 {{ request()->routeIs('events.*') ? 'bg-gray-700' : '' }}">
                             <i class="fas fa-calendar-alt w-6 h-6 text-gray-400 transition duration-75 group-hover:text-gray-300"></i>
                             <span class="ml-3">Kelola Acara</span>
                         </a>

@@ -9,7 +9,7 @@
 </div>
 
 <!-- Filter and Search -->
-<form action="{{ route('events.index') }}" method="GET" class="mb-6 p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
+<form action="{{ route('admin.events.index') }}" method="GET" class="mb-6 p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
     <div class="flex flex-col md:flex-row gap-4">
         <div class="flex-1">
             <label for="search" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cari Acara</label>
@@ -133,7 +133,7 @@
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div class="flex justify-end space-x-2">
-                            <a href="{{ route('events.tickets.index', $event) }}" class="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300" title="Kelola Tiket">
+                            <a href="{{ route('admin.tickets.index', $event) }}" class="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300" title="Kelola Tiket">
                                 <i class="fas fa-ticket-alt"></i>
                             </a>
                             <a href="{{ route('events.show', $event) }}" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300" title="Lihat Detail">
