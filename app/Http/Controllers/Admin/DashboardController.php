@@ -6,7 +6,10 @@ use Illuminate\Routing\Controller;
 use App\Models\Category;
 use App\Models\Event;
 use App\Models\Ticket;
+use App\Models\Order;
+use App\Models\Payment;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
@@ -17,19 +20,46 @@ class DashboardController extends Controller
 
     public function index()
     {
+        // Statistik dasar
         $totalEvents = Event::count();
         $upcomingEvents = Event::where('start_event', '>', now())->count();
         $categories = Category::count();
         $activeTickets = Ticket::sum('quota_avail');
 
+        // Acara terbaru
         $recentEvents = Event::with('category')
             ->latest()
             ->take(5)
             ->get();
 
+        // Pesanan terbaru
+        $recentOrders = Order::with(['ticket.event', 'payment', 'user'])
+            ->latest()
+            ->take(5)
+            ->get();
+
+        // Distribusi kategori untuk pie chart
         $categoryData = Category::withCount('events')->get();
         $categoryNames = $categoryData->pluck('name')->toArray();
         $eventCounts = $categoryData->pluck('events_count')->toArray();
+
+        // Data penjualan bulanan untuk bar chart
+        $monthlySalesLabels = [];
+        $monthlySalesData = [];
+
+        for ($i = 5; $i >= 0; $i--) {
+            $month = Carbon::now()->subMonths($i);
+            $monthlySalesLabels[] = $month->format('M Y');
+
+            $salesCount = Order::whereHas('payment', function($query) {
+                    $query->whereIn('status', ['pending', 'completed']);
+                })
+                ->whereYear('created_at', $month->year)
+                ->whereMonth('created_at', $month->month)
+                ->sum('quantity');
+
+            $monthlySalesData[] = $salesCount;
+        }
 
         return view('admin.dashboard', array_merge(compact(
             'totalEvents',
@@ -37,8 +67,11 @@ class DashboardController extends Controller
             'categories',
             'activeTickets',
             'recentEvents',
+            'recentOrders',
             'categoryNames',
-            'eventCounts'
+            'eventCounts',
+            'monthlySalesLabels',
+            'monthlySalesData'
         ), [
             'title' => 'Dashboard Admin',
             'header' => 'Dashboard Utama'

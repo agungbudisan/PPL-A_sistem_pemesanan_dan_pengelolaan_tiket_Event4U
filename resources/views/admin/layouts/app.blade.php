@@ -50,15 +50,33 @@
                         </a>
                     </li>
                     <li>
-                        <a href="{{ route('admin.events.index') }}" class="flex items-center p-2 text-gray-300 rounded-lg hover:bg-gray-700 {{ request()->routeIs('events.*') ? 'bg-gray-700' : '' }}">
+                        <a href="{{ route('admin.events.index') }}" class="flex items-center p-2 text-gray-300 rounded-lg hover:bg-gray-700 {{ request()->routeIs('admin.events.*') ? 'bg-gray-700' : '' }}">
                             <i class="fas fa-calendar-alt w-6 h-6 text-gray-400 transition duration-75 group-hover:text-gray-300"></i>
                             <span class="ml-3">Kelola Acara</span>
                         </a>
                     </li>
                     <li>
-                        <a href="{{ route('categories.index') }}" class="flex items-center p-2 text-gray-300 rounded-lg hover:bg-gray-700 {{ request()->routeIs('categories.*') ? 'bg-gray-700' : '' }}">
+                        <a href="{{ route('admin.categories.index') }}" class="flex items-center p-2 text-gray-300 rounded-lg hover:bg-gray-700 {{ request()->routeIs('admin.categories.*') ? 'bg-gray-700' : '' }}">
                             <i class="fas fa-tags w-6 h-6 text-gray-400 transition duration-75 group-hover:text-gray-300"></i>
                             <span class="ml-3">Kelola Kategori</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('admin.tickets.index', ['event' => 1]) }}" class="flex items-center p-2 text-gray-300 rounded-lg hover:bg-gray-700 {{ request()->routeIs('admin.tickets.*') ? 'bg-gray-700' : '' }}">
+                            <i class="fas fa-ticket-alt w-6 h-6 text-gray-400 transition duration-75 group-hover:text-gray-300"></i>
+                            <span class="ml-3">Kelola Tiket</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('admin.orders.index') }}" class="flex items-center p-2 text-gray-300 rounded-lg hover:bg-gray-700 {{ request()->routeIs('admin.orders.*') ? 'bg-gray-700' : '' }}">
+                            <i class="fas fa-shopping-cart w-6 h-6 text-gray-400 transition duration-75 group-hover:text-gray-300"></i>
+                            <span class="ml-3">Kelola Pesanan</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('admin.payments.index') }}" class="flex items-center p-2 text-gray-300 rounded-lg hover:bg-gray-700 {{ request()->routeIs('admin.payments.*') ? 'bg-gray-700' : '' }}">
+                            <i class="fas fa-credit-card w-6 h-6 text-gray-400 transition duration-75 group-hover:text-gray-300"></i>
+                            <span class="ml-3">Kelola Pembayaran</span>
                         </a>
                     </li>
                     <li>

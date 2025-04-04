@@ -111,7 +111,7 @@
                 @forelse($categories as $category)
                     <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all transform hover:scale-105">
                         <div class="h-36 bg-[#F3F4F6] flex items-center justify-center">
-                            <img src="{{ $category->icon ? asset('storage/' . $category->icon) : '/images/'.strtolower($category->name).'.png' }}" class="h-24 w-24 object-contain">
+                            <img src="{{ $category->icon ?: 'images/'.strtolower($category->name).'.png' }}" class="h-24 w-24 object-contain">
                         </div>
                         <div class="p-4 text-center">
                             <h3 class="font-bold">{{ $category->name }}</h3>
