@@ -3,9 +3,9 @@
 @section('content')
 <div class="flex justify-between items-center mb-6">
     <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">
-        {{ isset($category) ? 'Edit Kategori: ' . $category->name : 'Tambah Kategori Baru' }}
+        Tambah Kategori Baru
     </h1>
-    <a href="{{ route('categories.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150">
+    <a href="{{ route('admin.categories.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150">
         <i class="fas fa-arrow-left mr-2"></i> Kembali
     </a>
 </div>
@@ -13,13 +13,13 @@
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
     <div class="p-6">
         <form
-            action="{{ isset($category) ? route('categories.update', $category) : route('categories.store') }}"
+            action="{{ route('admin.categories.store') }}"
             method="POST"
             enctype="multipart/form-data"
             x-data="{
-                name: '{{ old('name', $category->name ?? '') }}',
-                previewImage: '{{ isset($category) && $category->icon ? $category->icon : '' }}',
-                description: '{{ old('description', $category->description ?? '') }}',
+                name: '{{ old('name', '') }}',
+                previewImage: '',
+                description: '{{ old('description', '') }}',
 
                 handleImageUpload(event) {
                     const file = event.target.files[0];
@@ -57,9 +57,6 @@
             @submit.prevent="validate() && $event.target.submit()"
         >
             @csrf
-            @if(isset($category))
-                @method('PUT')
-            @endif
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Nama Kategori -->
@@ -82,7 +79,7 @@
                 <!-- Icon Upload -->
                 <div>
                     <label for="icon" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Icon Kategori <span class="text-red-500">{{ isset($category) ? '' : '*' }}</span>
+                        Icon Kategori <span class="text-red-500">*</span>
                     </label>
                     <div class="mt-1 flex items-center">
                         <template x-if="previewImage">
@@ -104,7 +101,7 @@
                             @change="handleImageUpload"
                             accept="image/*"
                             class="block text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 dark:file:bg-indigo-900 dark:file:text-indigo-300 hover:file:bg-indigo-100 dark:hover:file:bg-indigo-800"
-                            {{ isset($category) ? '' : 'required' }}
+                            required
                         >
                     </div>
                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Upload gambar ikon untuk kategori (format: JPG, PNG, SVG. Maks: 2MB)</p>
@@ -130,25 +127,6 @@
                 @enderror
             </div>
 
-            <!-- Penggunaan Kategori untuk Edit -->
-            @if(isset($category) && $category->events->count() > 0)
-            <div class="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Penggunaan Kategori</h3>
-                <p class="text-sm text-gray-600 dark:text-gray-400">Kategori ini digunakan oleh {{ $category->events->count() }} acara.</p>
-                <div class="mt-2">
-                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Acara terkait:</p>
-                    <ul class="mt-1 pl-5 list-disc text-sm text-gray-600 dark:text-gray-400">
-                        @foreach($category->events->take(5) as $event)
-                            <li>{{ $event->title }}</li>
-                        @endforeach
-                        @if($category->events->count() > 5)
-                            <li>... dan {{ $category->events->count() - 5 }} acara lainnya</li>
-                        @endif
-                    </ul>
-                </div>
-            </div>
-            @endif
-
             <!-- Preview Kategori -->
             <div class="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                 <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Preview Kategori</h3>
@@ -172,7 +150,7 @@
                     type="submit"
                     class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 focus:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
                 >
-                    <i class="fas fa-save mr-2"></i> {{ isset($category) ? 'Perbarui Kategori' : 'Simpan Kategori' }}
+                    <i class="fas fa-save mr-2"></i> Simpan Kategori
                 </button>
             </div>
         </form>
