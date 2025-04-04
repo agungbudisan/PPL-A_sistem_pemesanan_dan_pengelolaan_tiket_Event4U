@@ -10,9 +10,24 @@ use App\Http\Controllers\PaymentController;
 use Illuminate\Support\Facades\Route;
 use App\Models\Event;
 
+// Ambil Event untuk Recommendation di Homepage
 Route::get('/', function () {
-    return view('welcome');
-});
+    $events = Event::where('start_event', '>', now())
+        ->orderBy('start_event', 'asc')
+        ->limit(3)
+        ->with(['tickets' => function ($query) {
+            $query->select('event_id', 'price');
+        }])
+        ->get()
+        ->map(function ($event) {
+            $minPrice = $event->tickets->min('price');
+            $maxPrice = $event->tickets->max('price');
+            $event->price_range = $minPrice === $maxPrice ? "Rp" . number_format($minPrice) : "Rp" . number_format($minPrice) . " - Rp" . number_format($maxPrice);
+            return $event;
+        });
+
+    return view('welcome', compact('events'));
+})->name('welcome');
 
 Route::get('/dashboard', function () {
     return view('dashboard');
@@ -47,38 +62,19 @@ Route::middleware('admin')->prefix('admin')->group(function () {
     Route::get('/analytics/{eventId?}', [DashboardController::class, 'analytics'])->name('admin.analytics');
 
     // Event Management
-    Route::resource('events', EventController::class)->except(['show']);
-    Route::get('/events/{event}', [EventController::class, 'show'])->name('events.show');
+    Route::resource('events', EventController::class)->except(['show'])->name('index', 'admin.events.index');
+    Route::get('/events/{event}', [EventController::class, 'show'])->name('admin.events.show');
 
     // Ticket Management untuk Event tertentu
-    Route::get('/events/{event}/tickets', [TicketController::class, 'index'])->name('events.tickets.index');
-    Route::get('/events/{event}/tickets/create', [TicketController::class, 'create'])->name('events.tickets.create');
-    Route::post('/events/{event}/tickets', [TicketController::class, 'store'])->name('events.tickets.store');
+    Route::get('/events/{event}/tickets', [TicketController::class, 'index'])->name('admin.events.tickets.index');
+    Route::get('/events/{event}/tickets/create', [TicketController::class, 'create'])->name('admin.events.tickets.create');
+    Route::post('/events/{event}/tickets', [TicketController::class, 'store'])->name('admin.events.tickets.store');
 
     // Ticket Resource untuk operasi edit, update, destroy
     Route::resource('tickets', TicketController::class)->only(['edit', 'update', 'destroy']);
 
     // Category Management
     Route::resource('categories', CategoryController::class);
-});
-
-// Ambil Event untuk Recommendation
-Route::get('/', function () {
-    $events = Event::where('start_event', '>', now())
-        ->orderBy('start_event', 'asc')
-        ->limit(3)
-        ->with(['tickets' => function ($query) {
-            $query->select('event_id', 'price');
-        }])
-        ->get()
-        ->map(function ($event) {
-            $minPrice = $event->tickets->min('price');
-            $maxPrice = $event->tickets->max('price');
-            $event->price_range = $minPrice === $maxPrice ? "Rp" . number_format($minPrice) : "Rp" . number_format($minPrice) . " - Rp" . number_format($maxPrice);
-            return $event;
-        });
-
-    return view('welcome', compact('events'));
 });
 
 require __DIR__.'/auth.php';

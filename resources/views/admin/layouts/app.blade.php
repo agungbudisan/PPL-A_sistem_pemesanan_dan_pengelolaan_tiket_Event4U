@@ -68,7 +68,7 @@
                         </a>
                     </li>
                     <li class="border-t border-gray-700 pt-2 mt-4">
-                        <a href="{{ route('dashboard') }}" class="flex items-center p-2 text-gray-300 rounded-lg hover:bg-gray-700">
+                        <a href="{{ route('welcome') }}" class="flex items-center p-2 text-gray-300 rounded-lg hover:bg-gray-700">
                             <i class="fas fa-home w-6 h-6 text-gray-400 transition duration-75 group-hover:text-gray-300"></i>
                             <span class="ml-3">Kembali ke Beranda</span>
                         </a>
