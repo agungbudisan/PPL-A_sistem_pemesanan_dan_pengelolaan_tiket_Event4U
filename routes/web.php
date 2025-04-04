@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\EventController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\OrderController;
@@ -11,23 +12,7 @@ use Illuminate\Support\Facades\Route;
 use App\Models\Event;
 
 // Ambil Event untuk Recommendation di Homepage
-Route::get('/', function () {
-    $events = Event::where('start_event', '>', now())
-        ->orderBy('start_event', 'asc')
-        ->limit(3)
-        ->with(['tickets' => function ($query) {
-            $query->select('event_id', 'price');
-        }])
-        ->get()
-        ->map(function ($event) {
-            $minPrice = $event->tickets->min('price');
-            $maxPrice = $event->tickets->max('price');
-            $event->price_range = $minPrice === $maxPrice ? "Rp" . number_format($minPrice) : "Rp" . number_format($minPrice) . " - Rp" . number_format($maxPrice);
-            return $event;
-        });
-
-    return view('welcome', compact('events'));
-})->name('welcome');
+Route::get('/', [HomeController::class, 'index'])->name('welcome');
 
 Route::get('/dashboard', function () {
     return view('dashboard');

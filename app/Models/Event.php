@@ -19,7 +19,7 @@ class Event extends Model
         'category_id',
         'uid_admin'
     ];
-    
+
     protected $casts = [
         'start_event' => 'datetime',
         'end_event' => 'datetime',
@@ -40,5 +40,10 @@ class Event extends Model
     public function tickets()
     {
         return $this->hasMany(Ticket::class);
+    }
+
+    public function orders()
+    {
+        return $this->hasManyThrough(Order::class, Ticket::class);
     }
 }

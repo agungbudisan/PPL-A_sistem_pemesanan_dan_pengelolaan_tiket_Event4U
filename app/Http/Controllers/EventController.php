@@ -12,8 +12,8 @@ class EventController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth');
-        $this->middleware('admin')->only(['create', 'store', 'edit', 'update']);
+        $this->middleware('auth')->except(['index', 'show']);
+        $this->middleware('admin')->only(['create', 'store', 'edit', 'update', 'destroy']);
     }
 
     public function index(Request $request)

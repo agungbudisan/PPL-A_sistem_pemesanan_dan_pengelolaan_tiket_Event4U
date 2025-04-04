@@ -61,38 +61,31 @@
             </h2>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="group relative overflow-hidden rounded-lg transition-transform duration-300 transform hover:scale-105">
-                    <div class="absolute top-0 left-0 w-16 h-16 bg-yellow-500 rounded-br-lg flex items-center justify-center shadow-lg">
-                        <span class="text-3xl font-bold">1</span>
+                @forelse($topEvents as $index => $event)
+                    <div class="group relative overflow-hidden rounded-lg transition-transform duration-300 transform hover:scale-105">
+                        <div class="absolute top-0 left-0 w-16 h-16 {{ $index === 0 ? 'bg-yellow-500' : ($index === 1 ? 'bg-gray-300' : 'bg-[#CD7F32]') }} rounded-br-lg flex items-center justify-center shadow-lg">
+                            <span class="text-3xl font-bold {{ $index === 1 ? 'text-gray-800' : 'text-white' }}">{{ $index + 1 }}</span>
+                        </div>
+                        <img src="{{ asset('storage/' . $event->thumbnail) }}" class="w-full h-56 object-cover">
+                        <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 p-4 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                            <h3 class="font-bold text-lg">{{ $event->title }}</h3>
+                            <p class="text-sm text-gray-300">{{ date('d F Y', strtotime($event->start_event)) }}</p>
+                        </div>
                     </div>
-                    <img src="/images/event_1.png" class="w-full h-56 object-cover">
-                    <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 p-4 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                        <h3 class="font-bold text-lg">Event Name</h3>
-                        <p class="text-sm text-gray-300">Coming soon</p>
-                    </div>
-                </div>
-
-                <div class="group relative overflow-hidden rounded-lg transition-transform duration-300 transform hover:scale-105">
-                    <div class="absolute top-0 left-0 w-16 h-16 bg-gray-300 rounded-br-lg flex items-center justify-center shadow-lg">
-                        <span class="text-3xl font-bold text-gray-800">2</span>
-                    </div>
-                    <img src="/images/event_2.png" class="w-full h-56 object-cover">
-                    <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 p-4 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                        <h3 class="font-bold text-lg">Event Name</h3>
-                        <p class="text-sm text-gray-300">Coming soon</p>
-                    </div>
-                </div>
-
-                <div class="group relative overflow-hidden rounded-lg transition-transform duration-300 transform hover:scale-105">
-                    <div class="absolute top-0 left-0 w-16 h-16 bg-[#CD7F32] rounded-br-lg flex items-center justify-center shadow-lg">
-                        <span class="text-3xl font-bold">3</span>
-                    </div>
-                    <img src="/images/event_3.png" class="w-full h-56 object-cover">
-                    <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 p-4 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                        <h3 class="font-bold text-lg">Event Name</h3>
-                        <p class="text-sm text-gray-300">Coming soon</p>
-                    </div>
-                </div>
+                @empty
+                    @for ($i = 0; $i < 3; $i++)
+                        <div class="group relative overflow-hidden rounded-lg transition-transform duration-300 transform hover:scale-105">
+                            <div class="absolute top-0 left-0 w-16 h-16 {{ $i === 0 ? 'bg-yellow-500' : ($i === 1 ? 'bg-gray-300' : 'bg-[#CD7F32]') }} rounded-br-lg flex items-center justify-center shadow-lg">
+                                <span class="text-3xl font-bold {{ $i === 1 ? 'text-gray-800' : 'text-white' }}">{{ $i + 1 }}</span>
+                            </div>
+                            <img src="/images/event_{{ $i + 1 }}.png" class="w-full h-56 object-cover">
+                            <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 p-4 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                                <h3 class="font-bold text-lg">Event Name</h3>
+                                <p class="text-sm text-gray-300">Coming soon</p>
+                            </div>
+                        </div>
+                    @endfor
+                @endforelse
             </div>
         </section>
 
@@ -115,154 +108,41 @@
             </div>
 
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-6">
-                <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all transform hover:scale-105">
-                    <div class="h-36 bg-[#F3F4F6] flex items-center justify-center">
-                        <img src="/images/festival.png" class="h-24 w-24 object-contain">
-                    </div>
-                    <div class="p-4 text-center">
-                        <h3 class="font-bold">Festival</h3>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all transform hover:scale-105">
-                    <div class="h-36 bg-[#F3F4F6] flex items-center justify-center">
-                        <img src="/images/konser.png" class="h-24 w-24 object-contain">
-                    </div>
-                    <div class="p-4 text-center">
-                        <h3 class="font-bold">Konser</h3>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all transform hover:scale-105">
-                    <div class="h-36 bg-[#F3F4F6] flex items-center justify-center">
-                        <img src="/images/pameran.png" class="h-24 w-24 object-contain">
-                    </div>
-                    <div class="p-4 text-center">
-                        <h3 class="font-bold">Pameran</h3>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all transform hover:scale-105">
-                    <div class="h-36 bg-[#F3F4F6] flex items-center justify-center">
-                        <img src="/images/nobar.png" class="h-24 w-24 object-contain">
-                    </div>
-                    <div class="p-4 text-center">
-                        <h3 class="font-bold">Nonton Bareng</h3>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all transform hover:scale-105">
-                    <div class="h-36 bg-[#F3F4F6] flex items-center justify-center">
-                        <img src="/images/pertunjukan.png" class="h-24 w-24 object-contain">
-                    </div>
-                    <div class="p-4 text-center">
-                        <h3 class="font-bold">Pertunjukan</h3>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all transform hover:scale-105">
-                    <div class="h-36 bg-[#F3F4F6] flex items-center justify-center">
-                        <img src="/images/seminar.png" class="h-24 w-24 object-contain">
-                    </div>
-                    <div class="p-4 text-center">
-                        <h3 class="font-bold">Seminar</h3>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Contact Us - Redesigned with better layout and effects -->
-        <section class="mb-16">
-            <h2 class="text-3xl font-bold mb-8 relative">
-                Get In Touch
-                <span class="block h-1 w-24 bg-[#7B0015] mt-2"></span>
-            </h2>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div class="bg-white rounded-xl shadow-lg p-8 transform transition-all hover:shadow-xl">
-                    <h3 class="text-2xl font-bold mb-6">Contact Us</h3>
-
-                    <div class="space-y-6">
-                        <div class="flex items-start">
-                            <div class="bg-[#7B0015] rounded-full p-3 mr-4">
-                                <i class="fas fa-map-marker-alt text-white"></i>
-                            </div>
-                            <div>
-                                <h4 class="text-xs uppercase text-gray-500 mb-2">OUR ADDRESS</h4>
-                                <p class="text-gray-700">57125 Surakarta<br>PT Tiket.in Indonesia<br>Gedung Selatan lantai 8</p>
-                            </div>
+                @forelse($categories as $category)
+                    <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all transform hover:scale-105">
+                        <div class="h-36 bg-[#F3F4F6] flex items-center justify-center">
+                            <img src="{{ $category->icon ? asset('storage/' . $category->icon) : '/images/'.strtolower($category->name).'.png' }}" class="h-24 w-24 object-contain">
                         </div>
-
-                        <div class="flex items-start">
-                            <div class="bg-[#7B0015] rounded-full p-3 mr-4">
-                                <i class="fas fa-envelope text-white"></i>
-                            </div>
-                            <div>
-                                <h4 class="text-xs uppercase text-gray-500 mb-2">OUR CONTACT</h4>
-                                <p class="text-gray-700">pnonton@tiket.in</p>
-                                <p class="text-gray-700">+62 123456789</p>
-                            </div>
-                        </div>
-
-                        <div class="flex items-start">
-                            <div class="bg-[#7B0015] rounded-full p-3 mr-4">
-                                <i class="fas fa-clock text-white"></i>
-                            </div>
-                            <div>
-                                <h4 class="text-xs uppercase text-gray-500 mb-2">BUSINESS HOURS</h4>
-                                <p class="text-gray-700">Monday - Friday: 9AM - 5PM</p>
-                                <p class="text-gray-700">Saturday: 10AM - 2PM</p>
-                            </div>
+                        <div class="p-4 text-center">
+                            <h3 class="font-bold">{{ $category->name }}</h3>
                         </div>
                     </div>
-
-                    <div class="mt-8 flex space-x-4">
-                        <a href="#" class="bg-gray-100 hover:bg-gray-200 rounded-full p-3 transition-colors">
-                            <i class="fab fa-facebook-f text-[#7B0015]"></i>
-                        </a>
-                        <a href="#" class="bg-gray-100 hover:bg-gray-200 rounded-full p-3 transition-colors">
-                            <i class="fab fa-instagram text-[#7B0015]"></i>
-                        </a>
-                        <a href="#" class="bg-gray-100 hover:bg-gray-200 rounded-full p-3 transition-colors">
-                            <i class="fab fa-twitter text-[#7B0015]"></i>
-                        </a>
-                        <a href="#" class="bg-gray-100 hover:bg-gray-200 rounded-full p-3 transition-colors">
-                            <i class="fab fa-youtube text-[#7B0015]"></i>
-                        </a>
+                @empty
+                    <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all transform hover:scale-105">
+                        <div class="h-36 bg-[#F3F4F6] flex items-center justify-center">
+                            <img src="/images/festival.png" class="h-24 w-24 object-contain">
+                        </div>
+                        <div class="p-4 text-center">
+                            <h3 class="font-bold">Festival</h3>
+                        </div>
                     </div>
-                </div>
-
-                <div class="bg-white rounded-xl shadow-lg p-8 transform transition-all hover:shadow-xl">
-                    <h3 class="text-2xl font-bold mb-6">Send Us a Message</h3>
-
-                    <form class="space-y-6">
-                        <div class="relative">
-                            <input type="text" placeholder="Your Name" class="w-full py-3 px-4 border-b-2 border-gray-300 focus:outline-none focus:border-[#7B0015] bg-transparent">
-                            <i class="fas fa-user absolute right-3 top-3 text-gray-400"></i>
+                    <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all transform hover:scale-105">
+                        <div class="h-36 bg-[#F3F4F6] flex items-center justify-center">
+                            <img src="/images/konser.png" class="h-24 w-24 object-contain">
                         </div>
-
-                        <div class="relative">
-                            <input type="email" placeholder="Your Email" class="w-full py-3 px-4 border-b-2 border-gray-300 focus:outline-none focus:border-[#7B0015] bg-transparent">
-                            <i class="fas fa-envelope absolute right-3 top-3 text-gray-400"></i>
+                        <div class="p-4 text-center">
+                            <h3 class="font-bold">Konser</h3>
                         </div>
-
-                        <div class="relative">
-                            <input type="text" placeholder="Phone Number" class="w-full py-3 px-4 border-b-2 border-gray-300 focus:outline-none focus:border-[#7B0015] bg-transparent">
-                            <i class="fas fa-phone absolute right-3 top-3 text-gray-400"></i>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all transform hover:scale-105">
+                        <div class="h-36 bg-[#F3F4F6] flex items-center justify-center">
+                            <img src="/images/pameran.png" class="h-24 w-24 object-contain">
                         </div>
-
-                        <div class="relative">
-                            <textarea placeholder="Your Message" rows="4" class="w-full py-3 px-4 border-b-2 border-gray-300 focus:outline-none focus:border-[#7B0015] bg-transparent resize-none"></textarea>
-                            <i class="fas fa-comment absolute right-3 top-3 text-gray-400"></i>
+                        <div class="p-4 text-center">
+                            <h3 class="font-bold">Pameran</h3>
                         </div>
-
-                        <div class="flex justify-end">
-                            <button type="submit" class="bg-[#7B0015] hover:bg-[#950019] text-white font-bold py-3 px-8 rounded-full transition-all transform hover:scale-105 shadow-lg flex items-center">
-                                Send Message <i class="fas fa-paper-plane ml-2"></i>
-                            </button>
-                        </div>
-                    </form>
-                </div>
+                    </div>
+                @endforelse
             </div>
         </section>
     </main>
