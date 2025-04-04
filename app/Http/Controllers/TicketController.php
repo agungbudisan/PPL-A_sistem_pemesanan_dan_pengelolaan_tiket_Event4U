@@ -42,7 +42,7 @@ class TicketController extends Controller
             'quota_avail' => $request->quota_avail,
         ]);
 
-        return redirect()->route('events.tickets.index', $event)->with('success', 'Ticket created successfully.');
+        return redirect()->route('admin.tickets.index', $event)->with('success', 'Ticket created successfully.');
     }
 
     public function show(Ticket $ticket)
@@ -71,7 +71,7 @@ class TicketController extends Controller
             'quota_avail' => $request->quota_avail,
         ]);
 
-        return redirect()->route('events.tickets.index', $ticket->event)->with('success', 'Ticket updated successfully.');
+        return redirect()->route('admin.tickets.index', $ticket->event)->with('success', 'Ticket updated successfully.');
     }
 
     public function destroy(Ticket $ticket)

@@ -63,7 +63,7 @@
     class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden"
 >
     <div class="p-6">
-        <form action="{{ route('tickets.update', $ticket) }}" method="POST">
+        <form action="{{ route('admin.tickets.update', $ticket) }}" method="POST">
             @csrf
             @method('PUT')
 
