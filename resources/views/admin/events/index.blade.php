@@ -8,6 +8,19 @@
     </a>
 </div>
 
+<!-- Alert Success/Error -->
+{{-- @if(session('success'))
+    <div class="mb-4 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 dark:bg-green-800/20 dark:text-green-400" role="alert">
+        <p>{{ session('success') }}</p>
+    </div>
+@endif
+
+@if(session('error'))
+    <div class="mb-4 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 dark:bg-red-800/20 dark:text-red-400" role="alert">
+        <p>{{ session('error') }}</p>
+    </div>
+@endif --}}
+
 <!-- Filter and Search -->
 <form action="{{ route('admin.events.index') }}" method="GET" class="mb-6 p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
     <div class="flex flex-col md:flex-row gap-4">
@@ -92,10 +105,17 @@
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="flex items-center">
                             <div class="flex-shrink-0 h-10 w-10">
-                                <img class="h-10 w-10 rounded-full object-cover" src="{{ asset('storage/' . $event->thumbnail) }}" alt="{{ $event->title }}">
+                                @if($event->thumbnail)
+                                    <img class="h-10 w-10 rounded-full object-cover" src="{{ asset('storage/' . $event->thumbnail) }}" alt="{{ $event->title }}">
+                                @else
+                                    <div class="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
+                                        <i class="fas fa-image text-gray-400 dark:text-gray-500"></i>
+                                    </div>
+                                @endif
                             </div>
                             <div class="ml-4">
                                 <div class="text-sm font-medium text-gray-900 dark:text-white">{{ $event->title }}</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">ID: {{ $event->id }}</div>
                             </div>
                         </div>
                     </td>
@@ -107,7 +127,10 @@
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="text-sm text-gray-500 dark:text-gray-400">
-                            {{ $event->start_event->format('d M Y, H:i') }} - {{ $event->end_event->format('d M Y, H:i') }}
+                            {{ $event->start_event->format('d M Y, H:i') }}
+                        </div>
+                        <div class="text-xs text-gray-400 dark:text-gray-500">
+                            s/d {{ $event->end_event->format('d M Y, H:i') }}
                         </div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
@@ -123,18 +146,50 @@
                                 $class = 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
                                 $text = 'Berlangsung';
                             }
+
+                            // Status penjualan
+                            $saleStatus = '';
+                            $saleClass = '';
+
+                            if ($now < $event->start_sale) {
+                                $saleStatus = 'Penjualan belum dimulai';
+                                $saleClass = 'text-yellow-600 dark:text-yellow-400';
+                            } elseif ($now >= $event->start_sale && $now <= $event->end_sale) {
+                                $saleStatus = 'Penjualan dibuka';
+                                $saleClass = 'text-green-600 dark:text-green-400';
+                            } else {
+                                $saleStatus = 'Penjualan ditutup';
+                                $saleClass = 'text-red-600 dark:text-red-400';
+                            }
                         @endphp
                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $class }}">
                             {{ $text }}
                         </span>
+                        <div class="mt-1 text-xs {{ $saleClass }}">
+                            {{ $saleStatus }}
+                        </div>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        {{ $event->tickets->count() }} Jenis Tiket
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-500 dark:text-gray-400">
+                            <span class="font-medium">{{ $event->tickets->count() }}</span> Jenis
+                        </div>
+                        <div class="text-xs text-gray-400 dark:text-gray-500">
+                            @php
+                                $totalSold = 0;
+                                foreach ($event->tickets as $ticket) {
+                                    $totalSold += $ticket->orders->sum('quantity');
+                                }
+                            @endphp
+                            {{ $totalSold }} Terjual
+                        </div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div class="flex justify-end space-x-2">
+                        <div class="flex justify-end space-x-3">
                             <a href="{{ route('admin.tickets.index', $event) }}" class="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300" title="Kelola Tiket">
                                 <i class="fas fa-ticket-alt"></i>
+                            </a>
+                            <a href="{{ route('admin.analytics', $event->id) }}" class="text-purple-600 dark:text-purple-400 hover:text-purple-900 dark:hover:text-purple-300" title="Analytics">
+                                <i class="fas fa-chart-line"></i>
                             </a>
                             <a href="{{ route('admin.events.show', $event) }}" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300" title="Lihat Detail">
                                 <i class="fas fa-eye"></i>
@@ -145,7 +200,7 @@
                             <form action="{{ route('admin.events.destroy', $event) }}" method="POST" class="inline">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300" title="Hapus" onclick="return confirm('Apakah Anda yakin ingin menghapus acara ini?')">
+                                <button type="submit" class="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300" title="Hapus" onclick="return confirm('Apakah Anda yakin ingin menghapus acara ini? Semua tiket dan order terkait juga akan terhapus.')">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </form>

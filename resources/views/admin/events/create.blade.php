@@ -5,7 +5,7 @@
     <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">
         {{ isset($event) ? 'Edit Acara: ' . $event->title : 'Tambah Acara Baru' }}
     </h1>
-    <a href="{{ route('events.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150">
+    <a href="{{ route('admin.events.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150">
         <i class="fas fa-arrow-left mr-2"></i> Kembali
     </a>
 </div>
@@ -472,12 +472,16 @@
                                 id="has_stage_layout"
                                 name="has_stage_layout"
                                 type="checkbox"
+                                value="1"
                                 class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600"
+                                @if(old('has_stage_layout', isset($event) ? $event->has_stage_layout : false)) checked @endif
                             >
+                            <!-- Tambahkan input hidden untuk nilai false -->
+                            <input type="hidden" name="has_stage_layout" value="0">
                         </div>
                         <div class="ml-3 text-sm">
                             <label for="has_stage_layout" class="font-medium text-gray-700 dark:text-gray-300">Acara Menggunakan Layout Panggung</label>
-                            <p class="text-gray-500 dark:text-gray-400">Centang jika acara memiliki layout panggung atau denah kursi (venue) yang perlu diperlihatkan kepada pembeli tiket</p>
+                            <p class="text-gray-500 dark:text-gray-400">Centang jika acara memiliki layout panggung atau denah kursi</p>
                         </div>
                     </div>
                 </div>
@@ -485,9 +489,7 @@
                 <!-- Stage Layout Upload -->
                 <div
                     x-show="hasStageLayout"
-                    x-transition:enter="transition ease-out duration-300"
-                    x-transition:enter-start="opacity-0 transform scale-95"
-                    x-transition:enter-end="opacity-100 transform scale-100"
+                    x-transition
                     class="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"
                 >
                     <label for="stage_layout" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -513,10 +515,10 @@
                             @change="handleStageLayoutUpload"
                             accept="image/*"
                             class="block text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 dark:file:bg-indigo-900 dark:file:text-indigo-300 hover:file:bg-indigo-100 dark:hover:file:bg-indigo-800"
+                            x-bind:required="hasStageLayout"
                         >
                     </div>
                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Upload gambar layout panggung/venue (format: JPG, PNG. Maks: 2MB)</p>
-                    <p x-ref="errorStageLayout" class="mt-1 text-sm text-red-600 dark:text-red-400"></p>
                     @error('stage_layout')
                         <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                     @enderror
