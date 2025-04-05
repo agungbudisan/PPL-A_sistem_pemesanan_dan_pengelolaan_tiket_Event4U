@@ -23,7 +23,7 @@ class HomeController extends Controller
                  ->get();
 
         // Ambil kategori untuk ditampilkan di section "Category"
-        $categories = Category::take(6)
+        $categories = Category::withCount('events')
                      ->get();
 
         // Ambil event populer untuk section "Top Events"

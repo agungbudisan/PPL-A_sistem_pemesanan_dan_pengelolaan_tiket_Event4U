@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use App\Models\Event;
+use Illuminate\Validation\Rule;
 use App\Models\Category;
 use Illuminate\Http\Request;
 
@@ -90,20 +93,20 @@ class EventController extends Controller
             'end_event' => 'required|date',
             'start_sale' => 'required|date',
             'end_sale' => 'required|date',
-            'thumbnail' => 'required|image',
+            'thumbnail' => 'required|image|max:2048',
             'category_id' => 'required|exists:categories,id',
-            'has_stage_layout' => 'nullable|boolean',
-            'stage_layout' => 'nullable|required_if:has_stage_layout,1|image',
+            'has_stage_layout' => 'sometimes|boolean',
+            'stage_layout' => [
+                'nullable',
+                'image',
+                'max:2048',
+                Rule::requiredIf(function () use ($request) {
+                    return $request->has_stage_layout == true;
+                })
+            ],
         ]);
 
-        $path = $request->file('thumbnail')->store('thumbnails', 'public');
-
-        $stageLayoutPath = null;
-        if ($request->has('has_stage_layout') && $request->hasFile('stage_layout')) {
-            $stageLayoutPath = $request->file('stage_layout')->store('stage_layouts', 'public');
-        }
-
-        Event::create([
+        $data = [
             'title' => $request->title,
             'description' => $request->description,
             'location' => $request->location,
@@ -111,13 +114,39 @@ class EventController extends Controller
             'end_event' => $request->end_event,
             'start_sale' => $request->start_sale,
             'end_sale' => $request->end_sale,
-            'thumbnail' => $path,
-            'stage_layout' => $stageLayoutPath,
             'category_id' => $request->category_id,
             'uid_admin' => Auth::id(),
-        ]);
+            'has_stage_layout' => $request->boolean('has_stage_layout'),
+        ];
 
-        return redirect()->route('admin.events.index')->with('success', 'Event created successfully.');
+        // Process thumbnail image
+        if ($request->hasFile('thumbnail') && $request->file('thumbnail')->isValid()) {
+            $data['thumbnail'] = $request->file('thumbnail')->store('events/thumbnails', 'public');
+        }
+
+        // Process stage layout image if provided
+        if ($data['has_stage_layout']) {
+            if ($request->hasFile('stage_layout') && $request->file('stage_layout')->isValid()) {
+                $data['stage_layout'] = $request->file('stage_layout')->store('events/layouts', 'public');
+            } else {
+                // Tambahkan error ke session jika stage layout diperlukan tapi tidak diupload
+                return back()->withInput()->withErrors([
+                    'stage_layout' => 'Layout panggung wajib diupload jika opsi ini dipilih'
+                ]);
+            }
+        } else {
+            $data['stage_layout'] = null;
+        }
+
+        try {
+            // Create event with the data
+            Event::create($data);
+
+            return redirect()->route('admin.events.index')->with('success', 'Event created successfully.');
+        } catch (\Exception $e) {
+            Log::error('Error creating event: ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Error creating event: ' . $e->getMessage());
+        }
     }
 
     public function edit(Event $event)
@@ -136,10 +165,18 @@ class EventController extends Controller
             'end_event' => 'required|date',
             'start_sale' => 'required|date',
             'end_sale' => 'required|date',
-            'thumbnail' => 'nullable|image',
-            'has_stage_layout' => 'nullable|boolean',
-            'stage_layout' => 'nullable|image',
+            'thumbnail' => 'nullable|image|max:2048',
             'category_id' => 'required|exists:categories,id',
+            'has_stage_layout' => 'sometimes|boolean',
+            'stage_layout' => [
+                Rule::requiredIf(function () use ($request) {
+                    return $request->boolean('has_stage_layout') &&
+                          !isset($request->stage_layout_exists);
+                }),
+                'nullable',
+                'image',
+                'max:2048',
+            ],
         ]);
 
         $data = [
@@ -151,25 +188,47 @@ class EventController extends Controller
             'start_sale' => $request->start_sale,
             'end_sale' => $request->end_sale,
             'category_id' => $request->category_id,
+            'has_stage_layout' => $request->boolean('has_stage_layout'),
         ];
 
-        if ($request->hasFile('thumbnail')) {
-            $data['thumbnail'] = $request->file('thumbnail')->store('thumbnails', 'public');
+        // Update thumbnail if a new one is provided
+        if ($request->hasFile('thumbnail') && $request->file('thumbnail')->isValid()) {
+            // Hapus thumbnail lama jika ada
+            if ($event->thumbnail && Storage::disk('public')->exists($event->thumbnail)) {
+                Storage::disk('public')->delete($event->thumbnail);
+            }
+
+            $data['thumbnail'] = $request->file('thumbnail')->store('events/thumbnails', 'public');
         }
 
         // Handling stage layout
-        if ($request->has('has_stage_layout')) {
-            if ($request->hasFile('stage_layout')) {
-                $data['stage_layout'] = $request->file('stage_layout')->store('stage_layouts', 'public');
+        $data['has_stage_layout'] = $request->has_stage_layout ?? false;
+
+        if ($data['has_stage_layout']) {
+            if ($request->hasFile('stage_layout') && $request->file('stage_layout')->isValid()) {
+                // Hapus file lama jika ada
+                if ($event->stage_layout) {
+                    Storage::disk('public')->delete($event->stage_layout);
+                }
+                $data['stage_layout'] = $request->file('stage_layout')->store('events/layouts', 'public');
+            } elseif (!$event->stage_layout) {
+                return back()->withInput()->with('error', 'Layout panggung wajib diupload jika opsi ini dipilih');
             }
         } else {
-            // Remove stage layout if checkbox is unchecked
+            // Hapus file jika ada dan checkbox tidak dicentang
+            if ($event->stage_layout) {
+                Storage::disk('public')->delete($event->stage_layout);
+            }
             $data['stage_layout'] = null;
         }
 
-        $event->update($data);
-
-        return redirect()->route('admin.events.index')->with('success', 'Event updated successfully.');
+        try {
+            $event->update($data);
+            return redirect()->route('admin.events.index')->with('success', 'Event updated successfully.');
+        } catch (\Exception $e) {
+            Log::error('Error updating event: ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Error updating event: ' . $e->getMessage());
+        }
     }
 
     public function destroy(Event $event)
