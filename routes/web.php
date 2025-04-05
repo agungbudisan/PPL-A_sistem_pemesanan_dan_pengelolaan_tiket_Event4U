@@ -95,6 +95,11 @@ Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
 
     // Payment Management
     Route::get('/payments', [PaymentController::class, 'adminIndex'])->name('payments.index');
+    Route::post('/payments/{payment}/update-status', [PaymentController::class, 'updateStatus'])->name('payments.updateStatus');
+
+    // Export Routes
+    Route::get('/payments/export', [PaymentController::class, 'export'])->name('payments.export');
+    Route::get('/payments/export-pdf', [PaymentController::class, 'exportPdf'])->name('payments.export-pdf');
 });
 
 require __DIR__.'/auth.php';
