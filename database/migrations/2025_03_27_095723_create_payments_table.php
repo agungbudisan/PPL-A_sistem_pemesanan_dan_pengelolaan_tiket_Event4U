@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('method');
             $table->string('status');
+            $table->string('guest_email')->nullable();
             $table->dateTime('payment_date');
             $table->foreignId('order_id')->constrained('orders');
             $table->timestamps();

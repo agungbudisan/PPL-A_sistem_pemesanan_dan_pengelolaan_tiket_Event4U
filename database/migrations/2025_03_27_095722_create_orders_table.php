@@ -13,9 +13,12 @@ return new class extends Migration
     {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
+            $table->string('reference')->nullable();
             $table->decimal('total_price', 10, 2);
             $table->integer('quantity');
             $table->string('email');
+            $table->string('guest_name')->nullable();
+            $table->string('guest_phone')->nullable();
             $table->dateTime('order_date');
             $table->foreignId('ticket_id')->constrained('tickets');
             $table->foreignId('user_id')->nullable()->constrained('users');

@@ -14,14 +14,14 @@ return new class extends Migration
         Schema::create('events', function (Blueprint $table) {
             $table->id();
             $table->string('title');
-            $table->string('description');
+            $table->text('description');
             $table->string('location');
             $table->dateTime('start_event');
             $table->dateTime('end_event');
             $table->dateTime('start_sale');
             $table->dateTime('end_sale');
-            $table->string('thumbnail');
-            $table->string('stage_layout')->nullable();
+            $table->longText('thumbnail')->nullable();
+            $table->longtext('stage_layout')->nullable();
             $table->foreignId('category_id')->constrained('categories');
             $table->foreignId('uid_admin')->constrained('users');
             $table->timestamps();
