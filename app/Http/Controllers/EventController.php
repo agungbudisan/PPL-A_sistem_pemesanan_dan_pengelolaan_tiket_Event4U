@@ -58,7 +58,7 @@ class EventController extends Controller
         if (request()->is('admin*')) {
             return view('admin.events.index', compact('events', 'categories'));
         }
-        
+
         return view('events.index', compact('events', 'categories'));
     }
 
