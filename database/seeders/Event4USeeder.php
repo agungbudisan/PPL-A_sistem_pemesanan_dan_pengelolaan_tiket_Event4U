@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use App\Models\User;
 use App\Models\Category;
 use App\Models\Event;
@@ -11,6 +12,7 @@ use App\Models\Ticket;
 use App\Models\Order;
 use App\Models\Payment;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 class Event4USeeder extends Seeder
 {
@@ -21,6 +23,19 @@ class Event4USeeder extends Seeder
      */
     public function run()
     {
+        // Pastikan direktori storage publik sudah ada dan bisa diakses
+        if (!Storage::disk('public')->exists('events/thumbnails')) {
+            Storage::disk('public')->makeDirectory('events/thumbnails');
+        }
+
+        if (!Storage::disk('public')->exists('events/layouts')) {
+            Storage::disk('public')->makeDirectory('events/layouts');
+        }
+
+        if (!Storage::disk('public')->exists('categories/icons')) {
+            Storage::disk('public')->makeDirectory('categories/icons');
+        }
+
         // Create Admin user
         $admin = User::create([
             'name' => 'Admin Event4U',
@@ -47,33 +62,43 @@ class Event4USeeder extends Seeder
         $categories = [
             [
                 'name' => 'Konser Musik',
-                'icon' => 'music',
                 'description' => 'Konser musik dengan penampilan artis-artis ternama.'
             ],
             [
                 'name' => 'Seminar',
-                'icon' => 'graduation-cap',
                 'description' => 'Seminar edukasi dengan tema-tema menarik.'
             ],
             [
                 'name' => 'Festival',
-                'icon' => 'campground',
                 'description' => 'Festival dengan berbagai kegiatan menarik.'
             ],
             [
                 'name' => 'Workshop',
-                'icon' => 'tools',
                 'description' => 'Workshop pengembangan keterampilan dan keahlian.'
             ],
             [
                 'name' => 'Pameran',
-                'icon' => 'paint-brush',
                 'description' => 'Pameran seni, teknologi, dan inovasi.'
             ],
         ];
 
-        foreach ($categories as $categoryData) {
-            Category::create($categoryData);
+        $iconColors = ['#3498db', '#2ecc71', '#e74c3c', '#f39c12', '#9b59b6'];
+
+        foreach ($categories as $index => $categoryData) {
+            // Generate icon image file
+            $iconPath = $this->generateImageFile(
+                strtoupper($categoryData['name']),
+                $iconColors[$index] ?? '#3498db',
+                200,
+                200,
+                'categories/icons/category_' . Str::slug($categoryData['name']) . '.png'
+            );
+
+            Category::create([
+                'name' => $categoryData['name'],
+                'icon' => $iconPath,
+                'description' => $categoryData['description']
+            ]);
         }
 
         // Create Events
@@ -87,10 +112,10 @@ class Event4USeeder extends Seeder
                 'end_event' => $now->copy()->addDays(30)->addHours(5),
                 'start_sale' => $now->copy()->subDays(30),
                 'end_sale' => $now->copy()->addDays(25),
-                'thumbnail' => 'thumbnails/concert.jpg',
-                'stage_layout' => 'stage_layouts/concert_layout.jpg',
+                'color' => '#3498db',
+                'name' => 'Konser',
                 'category_id' => 1,
-                'uid_admin' => $admin->id,
+                'has_stage_layout' => true
             ],
             [
                 'title' => 'Seminar Teknologi Masa Depan',
@@ -100,9 +125,10 @@ class Event4USeeder extends Seeder
                 'end_event' => $now->copy()->addDays(15)->addHours(8),
                 'start_sale' => $now->copy()->subDays(15),
                 'end_sale' => $now->copy()->addDays(10),
-                'thumbnail' => 'thumbnails/seminar.jpg',
+                'color' => '#2ecc71',
+                'name' => 'Seminar',
                 'category_id' => 2,
-                'uid_admin' => $admin->id,
+                'has_stage_layout' => false
             ],
             [
                 'title' => 'Festival Budaya Nusantara',
@@ -112,9 +138,10 @@ class Event4USeeder extends Seeder
                 'end_event' => $now->copy()->addDays(7),
                 'start_sale' => $now->copy()->subDays(30),
                 'end_sale' => $now->copy()->addDays(4),
-                'thumbnail' => 'thumbnails/festival.jpg',
+                'color' => '#e74c3c',
+                'name' => 'Festival',
                 'category_id' => 3,
-                'uid_admin' => $admin->id,
+                'has_stage_layout' => false
             ],
             [
                 'title' => 'Workshop Digital Marketing',
@@ -124,9 +151,10 @@ class Event4USeeder extends Seeder
                 'end_event' => $now->copy()->subDays(4),
                 'start_sale' => $now->copy()->subDays(30),
                 'end_sale' => $now->copy()->subDays(6),
-                'thumbnail' => 'thumbnails/workshop.jpg',
+                'color' => '#f39c12',
+                'name' => 'Workshop',
                 'category_id' => 4,
-                'uid_admin' => $admin->id,
+                'has_stage_layout' => false
             ],
             [
                 'title' => 'Pameran Seni Rupa Kontemporer',
@@ -136,16 +164,52 @@ class Event4USeeder extends Seeder
                 'end_event' => $now->copy()->addDays(60),
                 'start_sale' => $now->copy()->addDays(10),
                 'end_sale' => $now->copy()->addDays(44),
-                'thumbnail' => 'thumbnails/art_exhibition.jpg',
+                'color' => '#9b59b6',
+                'name' => 'Pameran',
                 'category_id' => 5,
-                'uid_admin' => $admin->id,
+                'has_stage_layout' => false
             ],
         ];
 
-        // Menyimpan gambar dummy
-        $this->createDummyImages();
+        foreach ($events as $index => $eventData) {
+            // Generate thumbnail file path
+            $slug = Str::slug($eventData['title']);
+            $thumbnailPath = $this->generateImageFile(
+                $eventData['name'],
+                $eventData['color'],
+                800,
+                600,
+                'events/thumbnails/' . $slug . '_' . time() . '.png'
+            );
 
-        foreach ($events as $eventData) {
+            $stageLayoutPath = null;
+            if ($eventData['has_stage_layout']) {
+                $stageLayoutPath = $this->generateImageFile(
+                    'STAGE LAYOUT ' . $eventData['name'],
+                    '#34495e',
+                    1200,
+                    800,
+                    'events/layouts/' . $slug . '_layout_' . time() . '.png'
+                );
+            }
+
+            // Remove temp data
+            $color = $eventData['color'];
+            $name = $eventData['name'];
+            $has_stage_layout = $eventData['has_stage_layout'];
+
+            unset($eventData['color']);
+            unset($eventData['name']);
+            unset($eventData['has_stage_layout']);
+
+            // Set actual path values
+            $eventData['thumbnail'] = $thumbnailPath;
+            $eventData['stage_layout'] = $stageLayoutPath;
+            $eventData['has_stage_layout'] = $has_stage_layout;
+
+            // Add admin id
+            $eventData['uid_admin'] = $admin->id;
+
             $event = Event::create($eventData);
 
             // Create Tickets for Events
@@ -153,7 +217,11 @@ class Event4USeeder extends Seeder
 
             // Create Orders for Tickets
             $this->createOrders($event, $user);
+
+            $this->command->info("Created event: {$eventData['title']}");
         }
+
+        $this->command->info('Seeding completed successfully!');
     }
 
     /**
@@ -210,23 +278,39 @@ class Event4USeeder extends Seeder
 
         // Generate random number of orders for each ticket type
         foreach ($tickets as $ticket) {
-            $maxOrders = min($ticket->quota_avail, rand(20, 50)); // Random number of orders, max = quota
+            $maxOrders = min($ticket->quota_avail, rand(10, 25)); // Random number of orders, max = quota
 
             for ($i = 0; $i < $maxOrders; $i++) {
                 $quantity = rand(1, 3); // Random quantity between 1-3 tickets per order
+                $isUserOrder = rand(0, 10) > 8; // 20% chance for user order vs guest order
+                $orderDate = now()->subDays(rand(1, 30))->subHours(rand(1, 24));
+
+                // Generate reference for tracking
+                $reference = 'TIX' . strtoupper(substr(md5(uniqid()), 0, 8));
 
                 // Calculate total price
                 $totalPrice = $ticket->price * $quantity;
 
                 // Create order
-                $order = Order::create([
+                $orderData = [
+                    'reference' => $reference,
                     'total_price' => $totalPrice,
                     'quantity' => $quantity,
-                    'email' => 'customer' . rand(1, 1000) . '@example.com',
-                    'order_date' => now()->subDays(rand(1, 30))->subHours(rand(1, 24)),
+                    'email' => $isUserOrder ? $user->email : 'customer' . rand(1, 1000) . '@example.com',
+                    'order_date' => $orderDate,
                     'ticket_id' => $ticket->id,
-                    // 'user_id' kolom dihapus karena tidak ada di tabel orders
-                ]);
+                ];
+
+                // Add user data if user order
+                if ($isUserOrder) {
+                    $orderData['user_id'] = $user->id;
+                } else {
+                    // Add guest data if guest order
+                    $orderData['guest_name'] = 'Guest Customer ' . rand(1, 100);
+                    $orderData['guest_phone'] = '08' . rand(1111111111, 9999999999);
+                }
+
+                $order = Order::create($orderData);
 
                 // Create payment for the order
                 $this->createPayment($order);
@@ -243,67 +327,54 @@ class Event4USeeder extends Seeder
     private function createPayment(Order $order)
     {
         $paymentMethods = ['Credit Card', 'Bank Transfer', 'E-Wallet', 'Virtual Account'];
-        $paymentStatuses = ['paid', 'pending', 'cancelled'];
+        $paymentStatuses = ['completed', 'pending', 'cancelled', 'failed'];
 
-        // Weighted statuses (80% paid, 15% pending, 5% cancelled)
+        // Weighted statuses (75% completed, 15% pending, 5% cancelled, 5% failed)
         $statusRand = rand(1, 100);
-        $status = $statusRand <= 80 ? 'paid' : ($statusRand <= 95 ? 'pending' : 'cancelled');
+        $status = $statusRand <= 75
+            ? 'completed'
+            : ($statusRand <= 90
+            ? 'pending'
+            : ($statusRand <= 95
+                ? 'cancelled'
+                : 'failed'));
 
         // Set payment date for all statuses to avoid NULL
-        $paymentDate = $status == 'paid'
+        $paymentDate = $status == 'completed'
             ? $order->order_date->addMinutes(rand(5, 60))
-            : $order->order_date; // Menggunakan order_date untuk status selain 'paid'
+            : $order->order_date;
 
-        Payment::create([
+        $paymentData = [
             'method' => $paymentMethods[array_rand($paymentMethods)],
             'status' => $status,
             'payment_date' => $paymentDate,
             'order_id' => $order->id,
-        ]);
+        ];
+
+        // Add guest email for some orders
+        if (isset($order->guest_name) && rand(0, 1)) {
+            $paymentData['guest_email'] = $order->email; // Use same email from order
+        }
+
+        Payment::create($paymentData);
     }
 
     /**
-     * Create dummy image files
+     * Generate an image file and save it to storage
      *
-     * @return void
+     * @param string $text Text to display on the image
+     * @param string $bgColor Background color in hex format
+     * @param int $width Image width
+     * @param int $height Image height
+     * @param string $path Path to save the image to (relative to storage/public)
+     * @return string Path to the saved image (relative to storage/public)
      */
-    private function createDummyImages()
-    {
-        // Make sure the storage directories exist
-        if (!file_exists(public_path('storage/thumbnails'))) {
-            mkdir(public_path('storage/thumbnails'), 0755, true);
-        }
-
-        if (!file_exists(public_path('storage/stage_layouts'))) {
-            mkdir(public_path('storage/stage_layouts'), 0755, true);
-        }
-
-        // Create dummy thumbnails
-        $this->createDummyImage(public_path('storage/thumbnails/concert.jpg'), 'Konser', '#3498db');
-        $this->createDummyImage(public_path('storage/thumbnails/seminar.jpg'), 'Seminar', '#2ecc71');
-        $this->createDummyImage(public_path('storage/thumbnails/festival.jpg'), 'Festival', '#e74c3c');
-        $this->createDummyImage(public_path('storage/thumbnails/workshop.jpg'), 'Workshop', '#f39c12');
-        $this->createDummyImage(public_path('storage/thumbnails/art_exhibition.jpg'), 'Pameran', '#9b59b6');
-
-        // Create dummy stage layout
-        $this->createDummyImage(public_path('storage/stage_layouts/concert_layout.jpg'), 'STAGE LAYOUT', '#34495e', 800, 600);
-    }
-
-    /**
-     * Create a dummy image with text
-     *
-     * @param string $path
-     * @param string $text
-     * @param string $bgColor
-     * @param int $width
-     * @param int $height
-     * @return void
-     */
-    private function createDummyImage($path, $text, $bgColor, $width = 400, $height = 300)
+    private function generateImageFile($text, $bgColor = '#3498db', $width = 400, $height = 300, $path = null)
     {
         // Skip if GD extension is not available
         if (!extension_loaded('gd')) {
-            return;
+            $this->command->warn('GD extension is not available. Cannot generate images.');
+            return null;
         }
 
         // Create image
@@ -322,7 +393,6 @@ class Event4USeeder extends Seeder
         $text = strtoupper($text);
 
         // Calculate text position for center alignment
-        // Use approximate width calculation instead of TTF
         $textWidth = strlen($text) * imagefontwidth($fontSize);
         $textHeight = imagefontheight($fontSize);
         $x = ($width - $textWidth) / 2;
@@ -331,9 +401,33 @@ class Event4USeeder extends Seeder
         // Add text using built-in font
         imagestring($image, $fontSize, $x, $y, $text, $textColor);
 
-        // Save image
-        imagejpeg($image, $path);
+        // Add more styling - border
+        $borderColor = imagecolorallocate($image, 255, 255, 255);
+        imagerectangle($image, 0, 0, $width-1, $height-1, $borderColor);
+
+        // Add some gradient effect if width is large enough
+        if ($width >= 400) {
+            $overlayColor = imagecolorallocatealpha($image, 255, 255, 255, 110);
+            imagefilledrectangle($image, 0, 0, $width, $height/4, $overlayColor);
+        }
+
+        // Generate unique path if not provided
+        if (!$path) {
+            $path = 'temp/' . Str::random(10) . '.png';
+        }
+
+        // Get the stream resource
+        ob_start();
+        imagepng($image);
+        $imageData = ob_get_clean();
+
+        // Save to storage
+        Storage::disk('public')->put($path, $imageData);
+
+        // Free up memory
         imagedestroy($image);
+
+        return $path;
     }
 
     /**
