@@ -12,49 +12,84 @@
     @include('components.navbar')
 
     <main class="container mx-auto mb-16 mt-8 px-4 lg:px-6">
-        <!-- Event Header with Banner -->
-        <div class="relative rounded-xl overflow-hidden shadow-xl h-60 md:h-80 mb-6">
-            @if($event->thumbnail)
-                <img src="{{ asset('storage/' . $event->thumbnail) }}" alt="{{ $event->title }}" class="w-full h-full object-cover" />
-            @else
-                <div class="w-full h-full bg-gradient-to-r from-[#7B0015] to-[#AF0020] flex items-center justify-center">
-                    <i class="fas fa-calendar-day text-6xl text-white opacity-25"></i>
+        <!-- Event Header dengan Thumbnail Kompak (Diperbaiki) -->
+        <div class="relative rounded-xl overflow-hidden shadow-xl mb-6 bg-gradient-to-r from-[#7B0015] to-[#AF0020]">
+            <!-- Header section with controlled height -->
+            <div class="flex flex-col md:flex-row items-center">
+                <!-- Thumbnail dengan ukuran terkontrol di sisi kiri (hanya pada desktop) -->
+                @if($event->thumbnail)
+                <div class="hidden md:block md:w-1/3 h-60 overflow-hidden">
+                    <div class="w-full h-full relative">
+                        <img src="{{ asset('storage/' . $event->thumbnail) }}"
+                            alt="{{ $event->title }}"
+                            class="object-contain w-full h-full p-2 cursor-pointer"
+                            onclick="openFullImage('{{ asset('storage/' . $event->thumbnail) }}')" />
+                        <button type="button"
+                            onclick="openFullImage('{{ asset('storage/' . $event->thumbnail) }}')"
+                            class="absolute bottom-2 right-2 bg-black/50 hover:bg-black/70 text-white text-xs px-2 py-1 rounded cursor-pointer transition">
+                            <i class="fas fa-expand-alt"></i> Lihat
+                        </button>
+                    </div>
                 </div>
-            @endif
-            <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end">
-                <div class="p-6 text-white w-full">
-                    <div class="flex items-start justify-between">
-                        <div>
-                            <span class="inline-block bg-[#7B0015] text-white text-xs px-2 py-1 rounded-full mb-2">
+                @endif
+
+                <!-- Content di sisi kanan (atau penuh pada mobile) -->
+                <div class="p-6 md:p-8 {{ $event->thumbnail ? 'md:w-2/3' : 'w-full' }}">
+                    <div>
+                        <div class="flex items-start justify-between mb-4">
+                            <span class="inline-block bg-white/20 text-white text-xs px-2 py-1 rounded-full">
                                 {{ $event->category->name ?? 'Event' }}
                             </span>
-                            <h1 class="text-3xl md:text-4xl font-bold">{{ $event->title }}</h1>
+
+                            @php
+                                $now = now();
+                                $isSaleOpen = $now >= $event->start_sale && $now <= $event->end_sale;
+                                $isUpcoming = $now < $event->start_event;
+                                $isOngoing = $now >= $event->start_event && $now <= $event->end_event;
+                                $isPast = $now > $event->end_event;
+                            @endphp
+
+                            <span class="inline-block
+                                {{ $isUpcoming ? 'bg-blue-600' : ($isOngoing ? 'bg-green-600' : 'bg-gray-600') }}
+                                text-white text-xs px-2 py-1 rounded">
+                                {{ $isUpcoming ? 'Akan Datang' : ($isOngoing ? 'Sedang Berlangsung' : 'Selesai') }}
+                            </span>
                         </div>
-                        @php
-                            $now = now();
-                            $isSaleOpen = $now >= $event->start_sale && $now <= $event->end_sale;
-                            $isUpcoming = $now < $event->start_event;
-                            $isOngoing = $now >= $event->start_event && $now <= $event->end_event;
-                            $isPast = $now > $event->end_event;
-                        @endphp
-                        <div>
-                            @if($isUpcoming)
-                                <span class="inline-block bg-blue-600 text-white text-sm px-3 py-1 rounded-lg">
-                                    Akan Datang
-                                </span>
-                            @elseif($isOngoing)
-                                <span class="inline-block bg-green-600 text-white text-sm px-3 py-1 rounded-lg">
-                                    Sedang Berlangsung
-                                </span>
-                            @elseif($isPast)
-                                <span class="inline-block bg-gray-600 text-white text-sm px-3 py-1 rounded-lg">
-                                    Selesai
-                                </span>
-                            @endif
+
+                        <h1 class="text-2xl md:text-3xl font-bold text-white mb-2">{{ $event->title }}</h1>
+
+                        <div class="flex flex-wrap text-white/80 text-sm gap-4 mt-4">
+                            <div class="flex items-center">
+                                <i class="fas fa-calendar-alt mr-2"></i>
+                                <span>{{ date('d F Y', strtotime($event->start_event)) }}</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-clock mr-2"></i>
+                                <span>{{ date('H:i', strtotime($event->start_event)) }}</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-map-marker-alt mr-2"></i>
+                                <span>{{ $event->location }}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Mobile thumbnail yang lebih kecil (hanya tampil di mobile) -->
+            @if($event->thumbnail)
+            <div class="md:hidden w-full h-48 bg-gray-100 overflow-hidden relative">
+                <img src="{{ asset('storage/' . $event->thumbnail) }}"
+                    alt="{{ $event->title }}"
+                    class="object-contain w-full h-full cursor-pointer"
+                    onclick="openFullImage('{{ asset('storage/' . $event->thumbnail) }}')" />
+                <button type="button"
+                        onclick="openFullImage('{{ asset('storage/' . $event->thumbnail) }}')"
+                        class="absolute bottom-2 right-2 bg-black/50 hover:bg-black/70 text-white text-xs px-2 py-1 rounded cursor-pointer transition">
+                    <i class="fas fa-expand-alt"></i> Lihat
+                </button>
+            </div>
+            @endif
         </div>
 
         <section class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -292,6 +327,49 @@
     @include('components.footer')
 
     <script>
+        function openFullImage(src) {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black/90';
+            modal.style.backdropFilter = 'blur(5px)';
+            modal.innerHTML = `
+                <div class="relative max-w-4xl max-h-[90vh] p-4">
+                    <img src="${src}" alt="Full Image" class="max-w-full max-h-[80vh] object-contain">
+                    <button type="button" class="absolute top-2 right-2 bg-white text-black p-2 rounded-full hover:bg-gray-200" id="close-modal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            // Prevent scrolling when modal is open
+            document.body.style.overflow = 'hidden';
+
+            // Handling close button
+            const closeButton = modal.querySelector('#close-modal');
+            closeButton.addEventListener('click', function() {
+                modal.remove();
+                document.body.style.overflow = '';
+            });
+
+            // Tutup modal saat click di luar gambar
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    modal.remove();
+                    document.body.style.overflow = '';
+                }
+            });
+
+            // Close on escape key
+            const escHandler = function(e) {
+                if (e.key === 'Escape') {
+                    modal.remove();
+                    document.body.style.overflow = '';
+                    document.removeEventListener('keydown', escHandler);
+                }
+            };
+            document.addEventListener('keydown', escHandler);
+        }
+
         function increase(id) {
             const input = document.getElementById('qty-' + id);
             const max = Math.min(5, parseInt(input.dataset.stock)); // Maksimum 5 atau sesuai stock
