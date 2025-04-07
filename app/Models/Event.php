@@ -15,6 +15,7 @@ class Event extends Model
         'start_sale',
         'end_sale',
         'thumbnail',
+        'has_stage_layout',
         'stage_layout',
         'category_id',
         'uid_admin'

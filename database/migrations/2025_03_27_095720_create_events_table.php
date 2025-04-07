@@ -21,6 +21,7 @@ return new class extends Migration
             $table->dateTime('start_sale');
             $table->dateTime('end_sale');
             $table->longText('thumbnail')->nullable();
+            $table->boolean('has_stage_layout')->default(false);
             $table->longtext('stage_layout')->nullable();
             $table->foreignId('category_id')->constrained('categories');
             $table->foreignId('uid_admin')->constrained('users');
