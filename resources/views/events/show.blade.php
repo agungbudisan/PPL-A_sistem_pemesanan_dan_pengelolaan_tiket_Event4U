@@ -6,13 +6,25 @@
     <title>{{ $event->title }} - Event 4 U</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <style>
+        /* Menghilangkan panah atas/bawah pada input number */
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        /* Untuk Firefox */
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans">
 
     @include('components.navbar')
 
     <main class="container mx-auto mb-16 mt-8 px-4 lg:px-6">
-        <!-- Event Header dengan Thumbnail Kompak (Diperbaiki) -->
         <div class="relative rounded-xl overflow-hidden shadow-xl mb-6 bg-gradient-to-r from-[#7B0015] to-[#AF0020]">
             <!-- Header section with controlled height -->
             <div class="flex flex-col md:flex-row items-center">
@@ -155,8 +167,16 @@
                     <div class="bg-[#7B0015] text-white p-4">
                         <h2 class="font-bold text-lg">Layout Venue</h2>
                     </div>
-                    <div class="p-4">
-                        <img src="{{ asset('storage/' . $event->stage_layout) }}" alt="Layout Venue" class="w-full h-auto rounded-lg" />
+                    <div class="p-4 relative">
+                        <img src="{{ asset('storage/' . $event->stage_layout) }}"
+                            alt="Layout Venue"
+                            class="w-full h-auto rounded-lg cursor-pointer"
+                            onclick="openFullImage('{{ asset('storage/' . $event->stage_layout) }}')" />
+                        <button type="button"
+                                onclick="openFullImage('{{ asset('storage/' . $event->stage_layout) }}')"
+                                class="absolute bottom-2 right-2 bg-black/50 hover:bg-black/70 text-white text-xs px-2 py-1 rounded cursor-pointer transition">
+                            <i class="fas fa-expand-alt"></i> Lihat
+                        </button>
                     </div>
                 </div>
                 @endif
