@@ -526,27 +526,71 @@
 
                 <!-- Event Preview -->
                 <div class="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Preview Acara</h3>
-                    <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden">
-                        <div x-show="thumbnailPreview" class="w-full h-40 bg-gray-200 dark:bg-gray-600">
-                            <img :src="thumbnailPreview" alt="Event Thumbnail" class="w-full h-full object-cover">
-                        </div>
-                        <div x-show="!thumbnailPreview" class="w-full h-40 bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
-                            <i class="fas fa-image text-4xl text-gray-400 dark:text-gray-500"></i>
-                        </div>
-                        <div class="p-4">
-                            <h2 class="text-lg font-semibold text-gray-900 dark:text-white" x-text="title || 'Judul Acara'"></h2>
-                            <div class="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400">
-                                <i class="fas fa-map-marker-alt mr-1"></i>
-                                <span x-text="location || 'Lokasi'"></span>
+                    <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Preview Tampilan Detail Acara</h3>
+
+                    <div class="relative rounded-xl overflow-hidden shadow-md bg-gradient-to-r from-[#7B0015] to-[#AF0020]">
+                        <!-- Header section with controlled height -->
+                        <div class="flex flex-col md:flex-row items-center">
+                            <!-- Thumbnail dengan ukuran terkontrol di sisi kiri (hanya pada desktop) -->
+                            <template x-if="thumbnailPreview">
+                                <div class="hidden md:block md:w-1/3 h-40 overflow-hidden">
+                                    <div class="w-full h-full relative">
+                                        <img :src="thumbnailPreview"
+                                            alt="Preview Thumbnail"
+                                            class="object-contain w-full h-full p-2" />
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- Content di sisi kanan (atau penuh pada mobile) -->
+                            <div class="p-6 md:p-8" :class="thumbnailPreview ? 'md:w-2/3' : 'w-full'">
+                                <div>
+                                    <div class="flex items-start justify-between mb-4">
+                                        <span class="inline-block bg-white/20 text-white text-xs px-2 py-1 rounded-full">
+                                            {{ isset($category_id) && $category_id ? $categories->firstWhere('id', $category_id)->name : 'Kategori' }}
+                                        </span>
+                                        <span class="inline-block bg-blue-600 text-white text-xs px-2 py-1 rounded">
+                                            Akan Datang
+                                        </span>
+                                    </div>
+
+                                    <h1 class="text-xl md:text-2xl font-bold text-white mb-2" x-text="title || 'Judul Acara'"></h1>
+
+                                    <div class="flex flex-wrap text-white/80 text-sm gap-4 mt-4">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-calendar-alt mr-2"></i>
+                                            <span x-text="start_event ? new Date(start_event).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'}) : 'Tanggal Acara'"></span>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <i class="fas fa-clock mr-2"></i>
+                                            <span x-text="start_event ? new Date(start_event).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'}) : 'Waktu'"></span>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <i class="fas fa-map-marker-alt mr-2"></i>
+                                            <span x-text="location || 'Lokasi'"></span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="mt-1 flex items-center text-sm text-gray-500 dark:text-gray-400">
-                                <i class="fas fa-calendar-alt mr-1"></i>
-                                <span x-text="start_event ? new Date(start_event).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'}) : 'Tanggal Acara'"></span>
-                            </div>
-                            <div class="mt-4 text-sm text-gray-600 dark:text-gray-400" x-text="description ? (description.length > 100 ? description.substr(0, 100) + '...' : description) : 'Deskripsi acara akan ditampilkan di sini'"></div>
                         </div>
+
+                        <!-- Mobile thumbnail yang lebih kecil (hanya tampil di mobile) -->
+                        <template x-if="thumbnailPreview">
+                            <div class="md:hidden w-full h-40 bg-gray-100 overflow-hidden relative">
+                                <img :src="thumbnailPreview"
+                                    alt="Preview Thumbnail"
+                                    class="object-contain w-full h-full" />
+                            </div>
+                        </template>
                     </div>
+
+                    <!-- Stage Layout Preview (if enabled) -->
+                    <template x-if="hasStageLayout && stageLayoutPreview">
+                        <div class="mt-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
+                            <h4 class="font-medium text-gray-900 dark:text-white mb-2">Layout Venue</h4>
+                            <img :src="stageLayoutPreview" alt="Layout Venue" class="w-full h-auto rounded-lg" />
+                        </div>
+                    </template>
                 </div>
             </div>
 

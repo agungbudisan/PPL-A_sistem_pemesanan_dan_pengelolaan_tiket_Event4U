@@ -97,12 +97,12 @@ class EventController extends Controller
             'category_id' => 'required|exists:categories,id',
             'has_stage_layout' => 'sometimes|boolean',
             'stage_layout' => [
+                Rule::requiredIf(function () use ($request) {
+                    return $request->boolean('has_stage_layout');
+                }),
                 'nullable',
                 'image',
                 'max:2048',
-                Rule::requiredIf(function () use ($request) {
-                    return $request->has_stage_layout == true;
-                })
             ],
         ]);
 
@@ -125,11 +125,10 @@ class EventController extends Controller
         }
 
         // Process stage layout image if provided
-        if ($data['has_stage_layout']) {
+        if ($request->boolean('has_stage_layout')) {
             if ($request->hasFile('stage_layout') && $request->file('stage_layout')->isValid()) {
                 $data['stage_layout'] = $request->file('stage_layout')->store('events/layouts', 'public');
             } else {
-                // Tambahkan error ke session jika stage layout diperlukan tapi tidak diupload
                 return back()->withInput()->withErrors([
                     'stage_layout' => 'Layout panggung wajib diupload jika opsi ini dipilih'
                 ]);
@@ -169,9 +168,8 @@ class EventController extends Controller
             'category_id' => 'required|exists:categories,id',
             'has_stage_layout' => 'sometimes|boolean',
             'stage_layout' => [
-                Rule::requiredIf(function () use ($request) {
-                    return $request->boolean('has_stage_layout') &&
-                          !isset($request->stage_layout_exists);
+                Rule::requiredIf(function () use ($request, $event) {
+                    return $request->boolean('has_stage_layout') && !$event->stage_layout;
                 }),
                 'nullable',
                 'image',
@@ -201,22 +199,18 @@ class EventController extends Controller
             $data['thumbnail'] = $request->file('thumbnail')->store('events/thumbnails', 'public');
         }
 
-        // Handling stage layout
-        $data['has_stage_layout'] = $request->has_stage_layout ?? false;
-
-        if ($data['has_stage_layout']) {
+        // Update stage layout
+        if ($request->boolean('has_stage_layout')) {
             if ($request->hasFile('stage_layout') && $request->file('stage_layout')->isValid()) {
-                // Hapus file lama jika ada
-                if ($event->stage_layout) {
+                // Delete old stage layout if exists
+                if ($event->stage_layout && Storage::disk('public')->exists($event->stage_layout)) {
                     Storage::disk('public')->delete($event->stage_layout);
                 }
                 $data['stage_layout'] = $request->file('stage_layout')->store('events/layouts', 'public');
-            } elseif (!$event->stage_layout) {
-                return back()->withInput()->with('error', 'Layout panggung wajib diupload jika opsi ini dipilih');
             }
         } else {
-            // Hapus file jika ada dan checkbox tidak dicentang
-            if ($event->stage_layout) {
+            // If has_stage_layout is false, set stage_layout to null and delete file if exists
+            if ($event->stage_layout && Storage::disk('public')->exists($event->stage_layout)) {
                 Storage::disk('public')->delete($event->stage_layout);
             }
             $data['stage_layout'] = null;
