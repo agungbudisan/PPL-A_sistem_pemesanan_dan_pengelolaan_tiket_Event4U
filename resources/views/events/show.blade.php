@@ -114,7 +114,7 @@
                     </div>
                     <div class="p-4 space-y-3">
                         <div class="flex items-start">
-                            <div class="bg-red-100 p-2 rounded-lg text-[#7B0015] mr-3">
+                            <div class="w-10 h-10 bg-red-100 p-2 rounded-lg text-[#7B0015] flex items-center justify-center mr-3">
                                 <i class="fas fa-calendar-alt"></i>
                             </div>
                             <div>
@@ -125,7 +125,7 @@
                         </div>
 
                         <div class="flex items-start">
-                            <div class="bg-red-100 p-2 rounded-lg text-[#7B0015] mr-3">
+                            <div class="w-10 h-10 bg-red-100 p-2 rounded-lg text-[#7B0015] flex items-center justify-center mr-3">
                                 <i class="fas fa-map-marker-alt"></i>
                             </div>
                             <div>
@@ -135,7 +135,7 @@
                         </div>
 
                         <div class="flex items-start">
-                            <div class="bg-red-100 p-2 rounded-lg text-[#7B0015] mr-3">
+                            <div class="w-10 h-10 bg-red-100 p-2 rounded-lg text-[#7B0015] flex items-center justify-center mr-3">
                                 <i class="fas fa-ticket-alt"></i>
                             </div>
                             <div>
@@ -186,15 +186,23 @@
                     <div class="bg-[#7B0015] text-white p-4">
                         <h2 class="font-bold text-lg">Informasi Pemesanan</h2>
                     </div>
-                    <div class="p-4">
-                        <p class="text-sm text-gray-600 mb-2">
-                            <i class="fas fa-info-circle text-blue-500 mr-2"></i>
-                            Maksimum 5 tiket per jenis tiket dalam sekali pemesanan.
-                        </p>
-                        <p class="text-sm text-gray-600">
-                            <i class="fas fa-credit-card text-blue-500 mr-2"></i>
-                            Pembayaran harus dilakukan dalam waktu 1 jam setelah pemesanan.
-                        </p>
+                    <div class="p-4 space-y-3">
+                        <div class="flex items-start text-sm text-gray-600">
+                            <div class="text-blue-600 mr-2 mt-1">
+                                <i class="fas fa-info-circle"></i>
+                            </div>
+                            <p class="flex-1 text-justify">
+                                Maksimum 5 tiket per jenis tiket dalam sekali pemesanan.
+                            </p>
+                        </div>
+                        <div class="flex items-start text-sm text-gray-600">
+                            <div class="text-blue-600 mr-2 mt-1">
+                                <i class="fas fa-credit-card"></i>
+                            </div>
+                            <p class="flex-1 text-justify">
+                                Pembayaran harus dilakukan dalam waktu 1 jam setelah pemesanan.
+                            </p>
+                        </div>
                     </div>
                 </div>
 
