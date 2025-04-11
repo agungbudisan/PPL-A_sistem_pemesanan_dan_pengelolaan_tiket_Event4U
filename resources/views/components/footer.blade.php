@@ -9,16 +9,16 @@
                     <h3 class="text-xl font-bold mb-4">Event 4 U</h3>
                     <p class="text-white/80 mb-4">Discover your next favorite event. <br>Grab your seat in just a few clicks.</p>
                     <div class="flex space-x-4 mt-4">
-                        <a href="#" class="bg-white/20 hover:bg-white/30 rounded-full p-2.5 transition-colors">
+                        <a href="#" class="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-colors">
                             <i class="fab fa-facebook-f text-white"></i>
                         </a>
-                        <a href="#" class="bg-white/20 hover:bg-white/30 rounded-full p-2.5 transition-colors">
+                        <a href="#" class="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-colors">
                             <i class="fab fa-instagram text-white"></i>
                         </a>
-                        <a href="#" class="bg-white/20 hover:bg-white/30 rounded-full p-2.5 transition-colors">
+                        <a href="#" class="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-colors">
                             <i class="fab fa-twitter text-white"></i>
                         </a>
-                        <a href="#" class="bg-white/20 hover:bg-white/30 rounded-full p-2.5 transition-colors">
+                        <a href="#" class="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-colors">
                             <i class="fab fa-youtube text-white"></i>
                         </a>
                     </div>
