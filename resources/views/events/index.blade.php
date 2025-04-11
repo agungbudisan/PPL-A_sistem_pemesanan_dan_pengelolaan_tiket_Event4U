@@ -1,4 +1,4 @@
-{{-- filepath: c:\FERA\Semester 6\PPL\PPL-A_sistem_pemesanan_dan_pengelolaan_tiket_Event4U\resources\views\events\index.blade.php --}}
+
 
 <x-guest-layout>
     <x-slot:title>Daftar Event</x-slot:title>
