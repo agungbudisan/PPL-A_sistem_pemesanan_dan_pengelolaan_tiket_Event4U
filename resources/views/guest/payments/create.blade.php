@@ -66,6 +66,25 @@
                     </div>
                 </div>
 
+                <!-- Guest Information Summary -->
+                <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+                    <h2 class="font-semibold mb-3">Informasi Pengguna</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-gray-600">Nama:</p>
+                            <p class="font-medium">{{ $order->guest_name }}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600">Email:</p>
+                            <p class="font-medium">{{ $order->email }}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600">No. Telepon:</p>
+                            <p class="font-medium">{{ $order->guest_phone }}</p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Order Summary -->
                 <div class="mb-6 p-4 bg-gray-50 rounded-lg">
                     <h2 class="font-semibold mb-4">Ringkasan Pesanan</h2>
@@ -156,6 +175,36 @@
                                                     <li class="mb-1">Pastikan nominal pembayaran sesuai</li>
                                                     <li>Konfirmasi pembayaran otomatis setelah pembayaran berhasil</li>
                                                 </ol>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- Credit Card -->
+                        <div class="mb-3">
+                            <label class="block p-4 border rounded-md cursor-pointer" :class="paymentMethod === 'credit_card' ? 'border-[#7B0015] bg-red-50' : 'border-gray-300'">
+                                <div class="flex items-start">
+                                    <input type="radio" name="method" value="credit_card" class="mt-1 mr-3" x-model="paymentMethod">
+                                    <div class="flex-1">
+                                        <div class="flex items-center">
+                                            <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-3">
+                                                <i class="fas fa-credit-card text-[#7B0015]"></i>
+                                            </div>
+                                            <div>
+                                                <p class="font-semibold">Kartu Kredit</p>
+                                                <p class="text-sm text-gray-600">Visa, Mastercard, JCB</p>
+                                            </div>
+                                        </div>
+
+                                        <div class="mt-4 ml-12 text-sm" x-show="paymentMethod === 'credit_card'">
+                                            <div class="p-3 bg-gray-50 rounded-md">
+                                                <p class="font-semibold">Informasi:</p>
+                                                <ul class="mt-2 ml-4 list-disc text-gray-700">
+                                                    <li class="mb-1">Pembayaran diproses melalui gateway pembayaran aman</li>
+                                                    <li class="mb-1">Anda akan diarahkan ke halaman pembayaran setelah mengklik "Bayar Sekarang"</li>
+                                                </ul>
                                             </div>
                                         </div>
                                     </div>

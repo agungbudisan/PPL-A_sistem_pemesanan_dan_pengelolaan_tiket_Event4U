@@ -14,7 +14,7 @@ class PaymentController extends Controller
     public function __construct()
     {
         $this->middleware('auth')->only(['create', 'store', 'show']);
-        $this->middleware('admin')->only(['adminIndex']);
+        $this->middleware('admin')->only(['adminIndex', 'updateStatus']);
     }
 
     /**
@@ -61,8 +61,24 @@ class PaymentController extends Controller
     public function create(Order $order)
     {
         // Check if order belongs to authenticated user
-        if ($order->uid !== Auth::id()) {
+        if ($order->user_id !== Auth::id()) {
             abort(403, 'Unauthorized action.');
+        }
+
+        // Check if the order was created within the last hour
+        $orderCreatedAt = $order->order_date;
+        $now = now();
+        $diffInHours = $now->diffInHours($orderCreatedAt);
+
+        if ($diffInHours >= 1) {
+            return redirect()->route('orders.index')
+                ->with('error', 'Batas waktu pembayaran telah habis. Silakan buat pesanan baru.');
+        }
+
+        // Check if payment already exists
+        if ($order->payment) {
+            return redirect()->route('orders.show', $order)
+                ->with('info', 'Pembayaran untuk pesanan ini sudah dilakukan sebelumnya.');
         }
 
         return view('payments.create', compact('order'));
@@ -74,22 +90,54 @@ class PaymentController extends Controller
     public function store(Request $request, Order $order)
     {
         // Check if order belongs to authenticated user
-        if ($order->uid !== Auth::id()) {
+        if ($order->user_id !== Auth::id()) {
             abort(403, 'Unauthorized action.');
         }
 
+        // Check if the order was created within the last hour
+        $orderCreatedAt = $order->order_date;
+        $now = now();
+        $diffInHours = $now->diffInHours($orderCreatedAt);
+
+        if ($diffInHours >= 1) {
+            return redirect()->route('orders.index')
+                ->with('error', 'Batas waktu pembayaran telah habis. Silakan buat pesanan baru.');
+        }
+
+        // Check if payment already exists
+        if ($order->payment) {
+            return redirect()->route('orders.show', $order)
+                ->with('info', 'Pembayaran untuk pesanan ini sudah dilakukan sebelumnya.');
+        }
+
         $request->validate([
-            'method' => 'required|string|max:255',
+            'method' => 'required|string|in:transfer,ewallet,credit_card',
         ]);
 
-        $payment = Payment::create([
-            'method' => $request->method,
-            'status' => 'pending', // Default status
-            'payment_date' => now(),
-            'order_id' => $order->id,
-        ]);
+        try {
+            // For demonstration purposes, immediately set payment status to pending
+            $paymentStatus = 'pending'; // Options: pending, completed, failed, cancelled
 
-        return redirect()->route('orders.show', $order)->with('success', 'Payment processed successfully.');
+            // Create payment record
+            $payment = Payment::create([
+                'method' => $request->method,
+                'status' => $paymentStatus,
+                'payment_date' => now(),
+                'order_id' => $order->id,
+            ]);
+
+            // If using a real payment gateway, you would redirect to the payment gateway here
+            // and handle the callback in a separate method.
+
+            return redirect()->route('orders.show', $order)
+                ->with('success', 'Pembayaran berhasil diproses. Menunggu konfirmasi pembayaran.');
+
+        } catch (\Exception $e) {
+            // Log the error
+            Log::error('Payment processing error: ' . $e->getMessage());
+
+            return back()->with('error', 'Terjadi kesalahan saat memproses pembayaran. Silakan coba lagi.');
+        }
     }
 
     /**
@@ -122,7 +170,7 @@ class PaymentController extends Controller
         }
 
         $request->validate([
-            'method' => 'required|string|in:transfer,ewallet',
+            'method' => 'required|string|in:transfer,ewallet,credit_card',
             'guest_email' => 'required|email',
         ]);
 
@@ -187,7 +235,7 @@ class PaymentController extends Controller
     public function show(Payment $payment)
     {
         // Check if payment belongs to authenticated user
-        if ($payment->order->uid !== Auth::id()) {
+        if ($payment->order->user_id !== Auth::id()) {
             abort(403, 'Unauthorized action.');
         }
 
