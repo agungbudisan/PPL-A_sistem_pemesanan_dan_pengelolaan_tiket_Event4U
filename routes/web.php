@@ -53,12 +53,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Order Process
     Route::prefix('orders')->group(function () {
+        Route::get('/', [OrderController::class, 'index'])->name('orders.index');
         Route::get('/tickets/{ticket}/create', [OrderController::class, 'create'])->name('orders.create');
         Route::post('/tickets/{ticket}', [OrderController::class, 'store'])->name('orders.store');
         Route::get('/{order}', [OrderController::class, 'show'])->name('orders.show');
         Route::get('/{order}/payment', [PaymentController::class, 'create'])->name('payments.create');
         Route::post('/{order}/payment', [PaymentController::class, 'store'])->name('payments.store');
-        Route::get('/', [OrderController::class, 'index'])->name('orders.index');
+        Route::get('/{order}/download-ticket', [OrderController::class, 'downloadETicketPdf'])->name('orders.download-ticket');
     });
 });
 
