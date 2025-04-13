@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class OrderController extends Controller
 {
@@ -78,9 +79,23 @@ class OrderController extends Controller
     /**
      * Show the form for creating a new order for guest user
      */
-    public function guestCreate(Ticket $ticket)
+    public function guestCreate(Request $request, Ticket $ticket)
     {
-        return view('guest.orders.create', compact('ticket'));
+        // Gunakan single query parameter 'qty' untuk jumlah tiket
+        $quantity = $request->query('qty', 1);
+
+        // Konversi ke integer
+        $quantity = (int) $quantity;
+
+        // Validasi quantity
+        if ($quantity < 1 || $quantity > 5) {
+            $quantity = 1; // Default jika invalid
+        }
+
+        // Pastikan tidak melebihi quota_avail
+        $quantity = min($quantity, $ticket->quota_avail);
+
+        return view('guest.orders.create', compact('ticket', 'quantity'));
     }
 
     /**
@@ -149,5 +164,20 @@ class OrderController extends Controller
             ->firstOrFail();
 
         return view('guest.orders.confirmation', compact('order'));
+    }
+
+    public function downloadETicketPdf($reference)
+    {
+        $order = Order::where('reference', $reference)
+            ->with(['ticket.event', 'payment'])
+            ->firstOrFail();
+
+        // Pastikan order punya payment dengan status completed
+        if (!$order->payment || $order->payment->status !== 'completed') {
+            return back()->with('error', 'E-ticket hanya tersedia setelah pembayaran dikonfirmasi.');
+        }
+        $pdf = Pdf::loadView('pdfs.eticket', compact('order'));
+
+        return $pdf->download('e-ticket-' . $reference . '.pdf');
     }
 }

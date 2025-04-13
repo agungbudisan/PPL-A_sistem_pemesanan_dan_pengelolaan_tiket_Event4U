@@ -20,7 +20,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-900 font-sans">
+<body class="bg-gray-50 text-gray-900 font-sans @auth user-authenticated @endauth">
 
     @include('components.navbar')
 
@@ -114,7 +114,7 @@
                     </div>
                     <div class="p-4 space-y-3">
                         <div class="flex items-start">
-                            <div class="bg-red-100 p-2 rounded-lg text-[#7B0015] mr-3">
+                            <div class="w-10 h-10 bg-red-100 p-2 rounded-lg text-[#7B0015] flex items-center justify-center mr-3">
                                 <i class="fas fa-calendar-alt"></i>
                             </div>
                             <div>
@@ -125,7 +125,7 @@
                         </div>
 
                         <div class="flex items-start">
-                            <div class="bg-red-100 p-2 rounded-lg text-[#7B0015] mr-3">
+                            <div class="w-10 h-10 bg-red-100 p-2 rounded-lg text-[#7B0015] flex items-center justify-center mr-3">
                                 <i class="fas fa-map-marker-alt"></i>
                             </div>
                             <div>
@@ -135,7 +135,7 @@
                         </div>
 
                         <div class="flex items-start">
-                            <div class="bg-red-100 p-2 rounded-lg text-[#7B0015] mr-3">
+                            <div class="w-10 h-10 bg-red-100 p-2 rounded-lg text-[#7B0015] flex items-center justify-center mr-3">
                                 <i class="fas fa-ticket-alt"></i>
                             </div>
                             <div>
@@ -186,15 +186,23 @@
                     <div class="bg-[#7B0015] text-white p-4">
                         <h2 class="font-bold text-lg">Informasi Pemesanan</h2>
                     </div>
-                    <div class="p-4">
-                        <p class="text-sm text-gray-600 mb-2">
-                            <i class="fas fa-info-circle text-blue-500 mr-2"></i>
-                            Maksimum 5 tiket per jenis tiket dalam sekali pemesanan.
-                        </p>
-                        <p class="text-sm text-gray-600">
-                            <i class="fas fa-credit-card text-blue-500 mr-2"></i>
-                            Pembayaran harus dilakukan dalam waktu 1 jam setelah pemesanan.
-                        </p>
+                    <div class="p-4 space-y-3">
+                        <div class="flex items-start text-sm text-gray-600">
+                            <div class="text-blue-600 mr-2 mt-1">
+                                <i class="fas fa-info-circle"></i>
+                            </div>
+                            <p class="flex-1 text-justify">
+                                Maksimum 5 tiket per jenis tiket dalam sekali pemesanan.
+                            </p>
+                        </div>
+                        <div class="flex items-start text-sm text-gray-600">
+                            <div class="text-blue-600 mr-2 mt-1">
+                                <i class="fas fa-credit-card"></i>
+                            </div>
+                            <p class="flex-1 text-justify">
+                                Pembayaran harus dilakukan dalam waktu 1 jam setelah pemesanan.
+                            </p>
+                        </div>
                     </div>
                 </div>
 
@@ -250,94 +258,128 @@
                         </div>
                     @endif
 
-                    @foreach($event->tickets as $ticket)
-                        <div class="bg-white border-2 {{ $isSaleOpen ? 'border-red-700' : 'border-gray-300' }} rounded-xl overflow-hidden shadow-md">
-                            <div class="p-6 grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-4">
-                                <div>
-                                    <h3 class="text-xl font-bold {{ $isSaleOpen ? 'text-[#7B0015]' : 'text-gray-600' }}">{{ $ticket->ticket_class }}</h3>
-                                    <p class="text-sm text-gray-600 mt-1">{{ $ticket->description ?? 'Tiket ' . $ticket->ticket_class }}</p>
-                                    <div class="mt-2 flex items-center">
+                    <div x-data="{ selectedTicket: null }">
+                        @foreach($event->tickets as $ticket)
+                            <div class="bg-white border-2 {{ $isSaleOpen ? 'border-red-700' : 'border-gray-300' }} rounded-xl overflow-hidden shadow-md mb-4">
+                                <div class="p-6 grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-4">
+                                    <div>
+                                        <h3 class="text-xl font-bold {{ $isSaleOpen ? 'text-[#7B0015]' : 'text-gray-600' }}">{{ $ticket->ticket_class }}</h3>
+                                        <p class="text-sm text-gray-600 mt-1">{{ $ticket->description ?? 'Tiket ' . $ticket->ticket_class }}</p>
+                                        <div class="mt-2 flex items-center">
+                                            @if($ticket->quota_avail > 0 && $isSaleOpen)
+                                                <span class="flex items-center space-x-1 text-sm text-green-600">
+                                                    <i class="fas fa-circle text-xs"></i>
+                                                    <span>{{ $ticket->quota_avail }} tiket tersedia</span>
+                                                </span>
+                                            @elseif(!$isSaleOpen)
+                                                <span class="flex items-center space-x-1 text-sm text-gray-500">
+                                                    <i class="fas fa-lock text-xs"></i>
+                                                    <span>Penjualan tidak tersedia</span>
+                                                </span>
+                                            @else
+                                                <span class="flex items-center space-x-1 text-sm text-yellow-600">
+                                                    <i class="fas fa-circle text-xs"></i>
+                                                    <span>Tiket habis</span>
+                                                </span>
+                                            @endif
+                                        </div>
+                                    </div>
+
+                                    <div class="flex flex-col md:items-end justify-between">
+                                        <div class="text-right">
+                                            <span class="text-lg font-bold {{ $isSaleOpen ? 'text-gray-900' : 'text-gray-500' }}">
+                                                Rp{{ number_format($ticket->price, 0, ',', '.') }}
+                                            </span>
+                                        </div>
+
                                         @if($ticket->quota_avail > 0 && $isSaleOpen)
-                                            <span class="flex items-center space-x-1 text-sm text-green-600">
-                                                <i class="fas fa-circle text-xs"></i>
-                                                <span>{{ $ticket->quota_avail }} tiket tersedia</span>
-                                            </span>
+                                            <button type="button"
+                                                @click="selectedTicket = selectedTicket === {{ $ticket->id }} ? null : {{ $ticket->id }}"
+                                                class="mt-2 md:mt-0 py-2 px-4 rounded-lg"
+                                                :class="selectedTicket === {{ $ticket->id }} ? 'bg-[#950019] text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'">
+                                                <span x-text="selectedTicket === {{ $ticket->id }} ? 'Batalkan' : 'Pilih Tiket'"></span>
+                                            </button>
                                         @elseif(!$isSaleOpen)
-                                            <span class="flex items-center space-x-1 text-sm text-gray-500">
-                                                <i class="fas fa-lock text-xs"></i>
-                                                <span>Penjualan tidak tersedia</span>
-                                            </span>
+                                            <button disabled class="mt-2 md:mt-0 py-2 px-4 bg-gray-200 text-gray-500 rounded-lg cursor-not-allowed">
+                                                Penjualan Tidak Tersedia
+                                            </button>
                                         @else
-                                            <span class="flex items-center space-x-1 text-sm text-yellow-600">
-                                                <i class="fas fa-circle text-xs"></i>
-                                                <span>Tiket habis</span>
-                                            </span>
+                                            <button disabled class="mt-2 md:mt-0 py-2 px-4 bg-gray-200 text-gray-500 rounded-lg cursor-not-allowed">
+                                                Tiket Habis
+                                            </button>
                                         @endif
                                     </div>
                                 </div>
 
-                                <div class="flex flex-col md:items-end justify-between">
-                                    <div class="text-right">
-                                        <span class="text-lg font-bold {{ $isSaleOpen ? 'text-gray-900' : 'text-gray-500' }}">
-                                            Rp{{ number_format($ticket->price, 0, ',', '.') }}
-                                        </span>
+                                <!-- Quantity Selection (only shows when ticket is selected) -->
+                                <div x-show="selectedTicket === {{ $ticket->id }}" x-transition class="bg-gray-50 border-t border-gray-200 p-4">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-medium">Jumlah Tiket:</span>
+
+                                        <div class="flex items-center">
+                                            <button type="button"
+                                                onclick="decrease('{{ $ticket->id }}')"
+                                                class="w-10 h-10 flex items-center justify-center bg-gray-200 text-gray-700 rounded-l hover:bg-gray-300">
+                                                <i class="fas fa-minus"></i>
+                                            </button>
+
+                                            <input type="number"
+                                                id="qty-{{ $ticket->id }}"
+                                                data-ticket-id="{{ $ticket->id }}"
+                                                data-name="{{ $ticket->ticket_class }}"
+                                                data-price="{{ $ticket->price }}"
+                                                data-stock="{{ $ticket->quota_avail }}"
+                                                min="1"
+                                                max="{{ min(5, $ticket->quota_avail) }}"
+                                                value="1"
+                                                oninput="validateInput(this)"
+                                                class="ticket-qty w-16 h-10 text-center outline-none border border-gray-200 px-1">
+
+                                            <button type="button"
+                                                onclick="increase('{{ $ticket->id }}')"
+                                                class="w-10 h-10 flex items-center justify-center bg-gray-200 text-gray-700 rounded-r hover:bg-gray-300">
+                                                <i class="fas fa-plus"></i>
+                                            </button>
+                                        </div>
                                     </div>
 
-                                    <div class="flex items-center mt-2 md:mt-0 {{ $isSaleOpen ? '' : 'opacity-50' }}">
+                                    <div class="mt-4 flex justify-end">
                                         <button type="button"
-                                            onclick="decrease('{{ $ticket->id }}')"
-                                            class="w-8 h-8 flex items-center justify-center bg-gray-200 text-gray-700 rounded-l {{ (!$isSaleOpen || $ticket->quota_avail < 1) ? 'cursor-not-allowed opacity-50' : 'hover:bg-gray-300' }}"
-                                            {{ (!$isSaleOpen || $ticket->quota_avail < 1) ? 'disabled' : '' }}>
-                                            <i class="fas fa-minus"></i>
-                                        </button>
-
-                                        <input type="number"
-                                            id="qty-{{ $ticket->id }}"
-                                            data-ticket-id="{{ $ticket->id }}"
-                                            data-name="{{ $ticket->ticket_class }}"
-                                            data-price="{{ $ticket->price }}"
-                                            data-stock="{{ $ticket->quota_avail }}"
-                                            min="0"
-                                            max="{{ min(5, $ticket->quota_avail) }}"
-                                            value="0"
-                                            oninput="validateInput(this)"
-                                            class="ticket-qty w-14 h-8 text-center outline-none border border-gray-200 px-1"
-                                            {{ (!$isSaleOpen || $ticket->quota_avail < 1) ? 'disabled' : '' }}>
-
-                                        <button type="button"
-                                            onclick="increase('{{ $ticket->id }}')"
-                                            class="w-8 h-8 flex items-center justify-center bg-gray-200 text-gray-700 rounded-r {{ (!$isSaleOpen || $ticket->quota_avail < 1) ? 'cursor-not-allowed opacity-50' : 'hover:bg-gray-300' }}"
-                                            {{ (!$isSaleOpen || $ticket->quota_avail < 1) ? 'disabled' : '' }}>
-                                            <i class="fas fa-plus"></i>
+                                            onclick="addToSummary('{{ $ticket->id }}')"
+                                            class="py-2 px-4 bg-[#7B0015] hover:bg-[#950019] text-white font-medium rounded-lg">
+                                            Tambahkan ke Pesanan
                                         </button>
                                     </div>
                                 </div>
                             </div>
+                        @endforeach
+
+                        <!-- Order Summary -->
+                        <div class="bg-white p-6 rounded-xl shadow-md space-y-4 sticky bottom-0 md:relative border-t-2 border-[#7B0015]">
+                            <h2 class="text-xl font-bold mb-2">Ringkasan Pesanan</h2>
+                            <ul id="order-summary" class="text-gray-800 text-sm space-y-2">
+                                <li class="text-gray-500">Belum ada tiket dipilih.</li>
+                            </ul>
+                            <div class="pt-4 border-t border-gray-200">
+                                <p class="font-semibold text-lg flex justify-between">
+                                    <span>Total:</span>
+                                    <span id="total-price" class="text-[#7B0015]">Rp0</span>
+                                </p>
+
+                                <!-- Form untuk pemilihan tiket dengan data-attribute route -->
+                                <form action="{{ route('orders.create', ['ticket' => 0]) }}" method="GET" id="order-form"
+                                    data-base-route="{{ route('orders.create', ':ticket_id') }}"
+                                    data-guest-route="{{ route('guest.orders.create', ':ticket_id') }}"
+                                    onsubmit="return prepareOrderData()">
+                                    <input type="hidden" name="qty" id="qty-param">
+                                    <button type="submit"
+                                        class="w-full mt-4 bg-[#7B0015] hover:bg-[#950019] text-white font-bold py-3 px-6 rounded-lg transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#7B0015] disabled:hover:scale-100"
+                                        {{ !$isSaleOpen ? 'disabled' : '' }} id="order-button" disabled>
+                                        {{ $isSaleOpen ? 'Pesan Tiket' : 'Penjualan Tidak Tersedia' }}
+                                    </button>
+                                </form>
+                            </div>
                         </div>
-                    @endforeach
-                </div>
-
-                <!-- Order Summary -->
-                <div class="bg-white p-6 rounded-xl shadow-md space-y-4 sticky bottom-0 md:relative border-t-2 border-[#7B0015]">
-                    <h2 class="text-xl font-bold mb-2">Ringkasan Pesanan</h2>
-                    <ul id="order-summary" class="text-gray-800 text-sm space-y-2">
-                        <li class="text-gray-500">Belum ada tiket dipilih.</li>
-                    </ul>
-                    <div class="pt-4 border-t border-gray-200">
-                        <p class="font-semibold text-lg flex justify-between">
-                            <span>Total:</span>
-                            <span id="total-price" class="text-[#7B0015]">Rp0</span>
-                        </p>
-
-                        <!-- Form untuk pemilihan tiket -->
-                        <form action="{{ route('orders.create', ['ticket' => 0]) }}" method="GET" id="order-form" onsubmit="return prepareOrderData()">
-                            <input type="hidden" name="tickets" id="tickets-data">
-                            <button type="submit"
-                                class="w-full mt-4 bg-[#7B0015] hover:bg-[#950019] text-white font-bold py-3 px-6 rounded-lg transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#7B0015] disabled:hover:scale-100"
-                                {{ !$isSaleOpen ? 'disabled' : '' }}>
-                                {{ $isSaleOpen ? 'Pesan Tiket' : 'Penjualan Tidak Tersedia' }}
-                            </button>
-                        </form>
                     </div>
                 </div>
             </div>
@@ -390,102 +432,156 @@
             document.addEventListener('keydown', escHandler);
         }
 
+        // Definisikan selectedTicket sebagai variabel global
+        let selectedTicket = null;
+
+        function addToSummary(ticketId) {
+            const input = document.getElementById('qty-' + ticketId);
+            if (!input) {
+                console.error('Input element not found for ticket ID:', ticketId);
+                return;
+            }
+
+            const qty = parseInt(input.value || 1);
+            const name = input.dataset.name;
+            const price = parseInt(input.dataset.price);
+
+            console.log('Adding to summary:', { ticketId, qty, name, price });
+
+            // Simpan data tiket yang dipilih
+            selectedTicket = {
+                id: ticketId,
+                name: name,
+                price: price,
+                quantity: qty
+            };
+
+            // Update ringkasan pesanan
+            updateSummary();
+
+            // Enable tombol pesan
+            const orderButton = document.getElementById('order-button');
+            if (orderButton) {
+                orderButton.disabled = false;
+            }
+        }
+
         function increase(id) {
             const input = document.getElementById('qty-' + id);
-            const max = Math.min(5, parseInt(input.dataset.stock)); // Maksimum 5 atau sesuai stock
-            let val = parseInt(input.value);
+            if (!input) return;
+
+            const max = Math.min(5, parseInt(input.dataset.stock || 5));
+            let val = parseInt(input.value || 1);
 
             if (val < max) {
                 input.value = val + 1;
-                updateSummary();
             }
+
+            console.log('Increased quantity for ticket:', id, 'New value:', input.value);
         }
 
         function decrease(id) {
             const input = document.getElementById('qty-' + id);
-            let val = parseInt(input.value);
+            if (!input) return;
 
-            if (val > 0) {
+            let val = parseInt(input.value || 1);
+
+            if (val > 1) {
                 input.value = val - 1;
-                updateSummary();
             }
+
+            console.log('Decreased quantity for ticket:', id, 'New value:', input.value);
         }
 
         function validateInput(input) {
-            // Memastikan hanya angka positif dan maksimum 5
-            let val = parseInt(input.value) || 0;
-            const max = Math.min(5, parseInt(input.dataset.stock));
+            if (!input) return;
 
-            // Batasi nilai antara 0 dan max
-            val = Math.max(0, Math.min(val, max));
+            // Memastikan hanya angka positif dan maksimum 5
+            let val = parseInt(input.value) || 1;
+            const max = Math.min(5, parseInt(input.dataset.stock || 5));
+
+            // Batasi nilai antara 1 dan max
+            val = Math.max(1, Math.min(val, max));
 
             // Update nilai
             input.value = val;
-            updateSummary();
         }
 
         function updateSummary() {
-            const items = document.querySelectorAll('.ticket-qty');
             const summary = document.getElementById('order-summary');
             const totalPriceEl = document.getElementById('total-price');
-            let total = 0;
-            let output = '';
-            let hasOrder = false;
+            const orderButton = document.getElementById('order-button');
 
-            items.forEach(input => {
-                const qty = parseInt(input.value);
-                if (qty > 0) {
-                    hasOrder = true;
-                    const name = input.dataset.name;
-                    const price = parseInt(input.dataset.price);
-                    const subtotal = price * qty;
-                    total += subtotal;
+            if (!summary || !totalPriceEl || !orderButton) {
+                console.error('One or more summary elements not found');
+                return;
+            }
 
-                    output += `<li class="flex justify-between"><span>${name} × ${qty}</span> <span>Rp${subtotal.toLocaleString('id-ID')}</span></li>`;
-                }
-            });
+            // Jika tidak ada tiket yang dipilih
+            if (!selectedTicket) {
+                summary.innerHTML = '<li class="text-gray-500">Belum ada tiket dipilih.</li>';
+                totalPriceEl.textContent = 'Rp0';
+                orderButton.disabled = true;
+                return;
+            }
 
-            summary.innerHTML = hasOrder ? output : '<li class="text-gray-500">Belum ada tiket dipilih.</li>';
-            totalPriceEl.textContent = 'Rp' + total.toLocaleString('id-ID');
+            const subtotal = selectedTicket.price * selectedTicket.quantity;
+
+            summary.innerHTML = `
+                <li class="flex justify-between items-center py-2">
+                    <span>${selectedTicket.name} × ${selectedTicket.quantity}</span>
+                    <span>Rp${subtotal.toLocaleString('id-ID')}</span>
+                </li>
+            `;
+            totalPriceEl.textContent = 'Rp' + subtotal.toLocaleString('id-ID');
+            orderButton.disabled = false;
+
+            console.log('Summary updated with ticket:', selectedTicket);
         }
 
         function prepareOrderData() {
-            const items = document.querySelectorAll('.ticket-qty');
-            const data = [];
-            let found = false;
-            let firstTicketId = 0;
-
-            items.forEach(input => {
-                const qty = parseInt(input.value);
-                if (qty > 0) {
-                    found = true;
-                    const ticketId = input.dataset.ticketId;
-                    if (firstTicketId === 0) {
-                        firstTicketId = ticketId;
-                    }
-                    data.push({
-                        ticket_id: ticketId,
-                        quantity: qty
-                    });
-                }
-            });
-
-            if (!found) {
-                alert('Silakan pilih minimal 1 tiket.');
+            if (!selectedTicket) {
+                alert('Silakan pilih tiket terlebih dahulu.');
                 return false;
             }
 
-            // Update route dengan ID tiket pertama
+            // Dapatkan form element
             const form = document.getElementById('order-form');
+            if (!form) {
+                console.error('Form tidak ditemukan');
+                return false;
+            }
 
-            // Tentukan route berdasarkan status login
+            // Buat URL dengan parameter qty
+            let baseUrl;
+
             @auth
-                form.action = "{{ route('orders.create', ':ticket_id') }}".replace(':ticket_id', firstTicketId);
+                baseUrl = "{{ route('orders.create', ':ticket_id') }}".replace(':ticket_id', selectedTicket.id);
             @else
-                form.action = "{{ route('guest.orders.create', ':ticket_id') }}".replace(':ticket_id', firstTicketId);
+                baseUrl = "{{ route('guest.orders.create', ':ticket_id') }}".replace(':ticket_id', selectedTicket.id);
             @endauth
 
-            document.getElementById('tickets-data').value = JSON.stringify(data);
+            // Set form action dengan URL dasar + parameter qty
+            form.action = baseUrl;
+
+            // Tambahkan input hidden untuk qty
+            let qtyInput = document.getElementById('qty-param');
+            if (!qtyInput) {
+                qtyInput = document.createElement('input');
+                qtyInput.type = 'hidden';
+                qtyInput.id = 'qty-param';
+                qtyInput.name = 'qty';
+                form.appendChild(qtyInput);
+            }
+            qtyInput.value = selectedTicket.quantity;
+
+            // Hapus input tickets jika ada
+            const ticketsInput = document.getElementById('tickets-data');
+            if (ticketsInput) {
+                ticketsInput.parentNode.removeChild(ticketsInput);
+            }
+
+            console.log('Form disiapkan dengan URL:', form.action, 'dan qty:', selectedTicket.quantity);
             return true;
         }
 
@@ -496,8 +592,10 @@
                 const max = Math.min(5, parseInt(input.dataset.stock));
                 input.setAttribute('max', max);
             });
+
+            // Disable tombol pesan secara default
+            document.getElementById('order-button').disabled = true;
         });
     </script>
-
 </body>
 </html>

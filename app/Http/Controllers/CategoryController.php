@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Storage;
 
 class CategoryController extends Controller
 {
@@ -32,19 +33,16 @@ class CategoryController extends Controller
             'description' => 'nullable|string'
         ]);
 
-        if ($request->hasFile('icon')) {
-            $image = $request->file('icon');
-            $imageData = file_get_contents($image->getRealPath());
-            $base64Image = base64_encode($imageData);
-            $mimeType = $image->getClientMimeType();
-            $iconData = 'data:' . $mimeType . ';base64,' . $base64Image;
+        $data = [
+            'name' => $request->name,
+            'description' => $request->description
+        ];
+
+        if ($request->hasFile('icon') && $request->file('icon')->isValid()) {
+            $data['icon'] = $request->file('icon')->store('categories/icons', 'public');
         }
 
-        Category::create([
-            'name' => $request->name,
-            'icon' => $iconData ?? null,
-            'description' => $request->description
-        ]);
+        Category::create($data);
 
         return redirect()->route('admin.categories.index')
             ->with('success', 'Category created successfully.');
@@ -64,7 +62,7 @@ class CategoryController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255|unique:categories,name,'.$category->id,
-            'icon' => 'required|image|max:2048',
+            'icon' => 'nullable|image|max:2048',
             'description' => 'nullable|string'
         ]);
 
@@ -73,12 +71,13 @@ class CategoryController extends Controller
             'description' => $request->description
         ];
 
-        if ($request->hasFile('icon')) {
-            $image = $request->file('icon');
-            $imageData = file_get_contents($image->getRealPath());
-            $base64Image = base64_encode($imageData);
-            $mimeType = $image->getClientMimeType();
-            $data['icon'] = 'data:' . $mimeType . ';base64,' . $base64Image;
+        if ($request->hasFile('icon') && $request->file('icon')->isValid()) {
+            // Hapus icon lama jika ada
+            if ($category->icon && Storage::disk('public')->exists($category->icon)) {
+                Storage::disk('public')->delete($category->icon);
+            }
+
+            $data['icon'] = $request->file('icon')->store('categories/icons', 'public');
         }
 
         $category->update($data);
@@ -89,7 +88,13 @@ class CategoryController extends Controller
 
     public function destroy(Category $category)
     {
+        // Hapus icon jika ada
+        if ($category->icon && Storage::disk('public')->exists($category->icon)) {
+            Storage::disk('public')->delete($category->icon);
+        }
+
         $category->delete();
+
         return redirect()->route('admin.categories.index')
             ->with('success', 'Category deleted successfully.');
     }

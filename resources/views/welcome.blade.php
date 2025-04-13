@@ -120,29 +120,36 @@
                 @forelse($categories as $category)
                     <a href="{{ route('events.index', ['category_id' => $category->id]) }}" class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all transform hover:scale-105">
                         <div class="h-36 bg-[#F3F4F6] flex items-center justify-center">
-                            @if($category->icon)
-                                <img src="{{ $category->icon }}" alt="{{ $category->name }}" class="h-24 w-24 object-contain">
-                            @elseif($category->icon && file_exists(public_path('storage/' . $category->icon)))
+                            @php
+                                // Logic untuk menentukan ikon berdasarkan nama kategori
+                                $name = strtolower($category->name);
+                                $icon = 'calendar-alt';
+
+                                if (strpos($name, 'konser') !== false || strpos($name, 'musik') !== false) {
+                                    $icon = 'music';
+                                } elseif (strpos($name, 'seminar') !== false) {
+                                    $icon = 'microphone';
+                                } elseif (strpos($name, 'festival') !== false) {
+                                    $icon = 'child';
+                                } elseif (strpos($name, 'workshop') !== false) {
+                                    $icon = 'tools';
+                                } elseif (strpos($name, 'pameran') !== false) {
+                                    $icon = 'image';
+                                } elseif (strpos($name, 'kompetisi') !== false) {
+                                    $icon = 'trophy';
+                                } elseif (strpos($name, 'teater') !== false || strpos($name, 'pertunjukan') !== false) {
+                                    $icon = 'theater-masks';
+                                } elseif (strpos($name, 'olahraga') !== false || strpos($name, 'sport') !== false) {
+                                    $icon = 'running';
+                                }
+                            @endphp
+
+                            <!-- Tampilkan ikon atau gambar kategori -->
+                            @if($category->icon && file_exists(public_path('storage/' . $category->icon)))
                                 <img src="{{ asset('storage/' . $category->icon) }}" alt="{{ $category->name }}" class="h-24 w-24 object-contain">
                             @else
-                                <!-- Fallback to Font Awesome icon -->
+                                <!-- Fallback ke Font Awesome icon -->
                                 <div class="h-24 w-24 rounded-full bg-[#7B0015] flex items-center justify-center text-white text-3xl">
-                                    @php
-                                        $name = strtolower($category->name);
-                                        $icon = 'calendar-check';
-
-                                        if (strpos($name, 'konser') !== false || strpos($name, 'musik') !== false) {
-                                            $icon = 'music';
-                                        } elseif (strpos($name, 'seminar') !== false) {
-                                            $icon = 'microphone';
-                                        } elseif (strpos($name, 'festival') !== false) {
-                                            $icon = 'child';
-                                        } elseif (strpos($name, 'workshop') !== false) {
-                                            $icon = 'tools';
-                                        } elseif (strpos($name, 'pameran') !== false) {
-                                            $icon = 'image';
-                                        }
-                                    @endphp
                                     <i class="fas fa-{{ $icon }}"></i>
                                 </div>
                             @endif
@@ -153,122 +160,47 @@
                         </div>
                     </a>
                 @empty
-                    <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all transform hover:scale-105">
-                        <div class="h-36 bg-[#F3F4F6] flex items-center justify-center">
-                            <img src="/images/festival.png" class="h-24 w-24 object-contain" alt="Festival">
+                    <!-- Tampilkan kategori placeholder jika tidak ada kategori -->
+                    @foreach(['Festival', 'Konser', 'Pameran', 'Workshop', 'Seminar', 'Kompetisi'] as $index => $name)
+                        <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all transform hover:scale-105">
+                            <div class="h-36 bg-[#F3F4F6] flex items-center justify-center">
+                                @php
+                                    $placeholderIcons = ['child', 'music', 'image', 'tools', 'microphone', 'trophy'];
+                                    $icon = $placeholderIcons[$index] ?? 'calendar-alt';
+                                @endphp
+                                <div class="h-24 w-24 rounded-full bg-[#7B0015] flex items-center justify-center text-white text-3xl">
+                                    <i class="fas fa-{{ $icon }}"></i>
+                                </div>
+                            </div>
+                            <div class="p-4 text-center">
+                                <h3 class="font-bold">{{ $name }}</h3>
+                                <p class="text-xs text-gray-500 mt-1">0 Events</p>
+                            </div>
                         </div>
-                        <div class="p-4 text-center">
-                            <h3 class="font-bold">Festival</h3>
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all transform hover:scale-105">
-                        <div class="h-36 bg-[#F3F4F6] flex items-center justify-center">
-                            <img src="/images/konser.png" class="h-24 w-24 object-contain" alt="Konser">
-                        </div>
-                        <div class="p-4 text-center">
-                            <h3 class="font-bold">Konser</h3>
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all transform hover:scale-105">
-                        <div class="h-36 bg-[#F3F4F6] flex items-center justify-center">
-                            <img src="/images/pameran.png" class="h-24 w-24 object-contain" alt="Pameran">
-                        </div>
-                        <div class="p-4 text-center">
-                            <h3 class="font-bold">Pameran</h3>
-                        </div>
-                    </div>
+                    @endforeach
                 @endforelse
             </div>
         </section>
 
-        <!-- NEW SECTION: Upcoming Events Calendar -->
-        {{-- <section class="mb-16">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-3xl font-bold relative">
-                    Events Calendar
-                    <span class="block h-1 w-24 bg-[#7B0015] mt-2"></span>
-                </h2>
-                <a href="{{ route('events.calendar') }}" class="text-[#7B0015] hover:text-[#950019] font-semibold flex items-center">
-                    Full Calendar <i class="fas fa-calendar-alt ml-2"></i>
-                </a>
-            </div>
-
-            <div class="bg-white rounded-xl shadow-lg p-6">
-                <div class="grid grid-cols-7 gap-4 text-center font-semibold mb-4">
-                    <div>Sun</div>
-                    <div>Mon</div>
-                    <div>Tue</div>
-                    <div>Wed</div>
-                    <div>Thu</div>
-                    <div>Fri</div>
-                    <div>Sat</div>
-                </div>
-
-                <div class="grid grid-cols-7 gap-2">
-                    @php
-                        $today = \Carbon\Carbon::now();
-                        $firstDayOfMonth = $today->copy()->startOfMonth();
-                        $startingDay = $firstDayOfMonth->dayOfWeek;
-                        $daysInMonth = $firstDayOfMonth->daysInMonth;
-
-                        // Fill in blank days at start
-                        for ($i = 0; $i < $startingDay; $i++) {
-                            echo '<div class="h-20 bg-gray-100 rounded-lg opacity-50"></div>';
-                        }
-
-                        // Loop through days
-                        for ($day = 1; $day <= $daysInMonth; $day++) {
-                            $currentDate = $firstDayOfMonth->copy()->addDays($day - 1);
-                            $isToday = $currentDate->isToday();
-
-                            // Check if there are events on this day (simulated)
-                            $hasEvents = isset($events) && $events->contains(function($event) use ($currentDate) {
-                                return \Carbon\Carbon::parse($event->start_event)->isSameDay($currentDate);
-                            });
-                    @endphp
-
-                    <div class="h-20 rounded-lg border {{ $isToday ? 'border-[#7B0015] bg-red-50' : 'border-gray-200' }} p-1 relative">
-                        <div class="text-sm {{ $isToday ? 'font-bold text-[#7B0015]' : '' }}">{{ $day }}</div>
-
-                        @if($hasEvents)
-                            <div class="absolute bottom-1 right-1 left-1">
-                                <div class="bg-[#7B0015] text-white text-xs p-1 rounded text-center truncate">Event</div>
-                            </div>
-                        @endif
-                    </div>
-
-                    @php
-                        }
-
-                        // Fill in remaining days
-                        $remainingDays = 7 - (($startingDay + $daysInMonth) % 7);
-                        if ($remainingDays < 7) {
-                            for ($i = 0; $i < $remainingDays; $i++) {
-                                echo '<div class="h-20 bg-gray-100 rounded-lg opacity-50"></div>';
-                            }
-                        }
-                    @endphp
-                </div>
-            </div>
-        </section> --}}
-
         <!-- CTA Section -->
-        {{-- <section class="mb-16 bg-gradient-to-r from-[#7B0015] to-[#AF0020] text-white p-8 rounded-xl shadow-lg">
+        <section class="mb-16 bg-gradient-to-r from-[#7B0015] to-[#AF0020] text-white p-8 rounded-xl shadow-lg">
             <div class="flex flex-col md:flex-row items-center justify-between">
                 <div class="mb-6 md:mb-0 md:mr-6">
-                    <h2 class="text-3xl font-bold mb-4">Ready to Host Your Own Event?</h2>
-                    <p class="text-lg opacity-90 max-w-lg">Join our platform and showcase your events to thousands of potential attendees. Easy setup, powerful tools, and great visibility.</p>
+                    <h2 class="text-3xl font-bold mb-4">Ready to Find Your Next Event?</h2>
+                    <p class="text-lg opacity-90 max-w-lg">Discover amazing events happening around you. Purchase tickets easily and never miss out on exciting experiences!</p>
                 </div>
                 <div class="flex flex-col space-y-3">
-                    <a href="{{ route('login') }}" class="bg-white text-[#7B0015] hover:bg-gray-100 font-bold py-3 px-8 rounded-full text-center transition-all transform hover:scale-105 shadow-lg">
-                        Sign In <i class="fas fa-sign-in-alt ml-2"></i>
+                    <a href="{{ route('events.index') }}" class="bg-white text-[#7B0015] hover:bg-gray-100 font-bold py-3 px-8 rounded-full text-center transition-all transform hover:scale-105 shadow-lg">
+                        Browse Events <i class="fas fa-search ml-2"></i>
                     </a>
+                    @guest
                     <a href="{{ route('register') }}" class="bg-transparent border-2 border-white text-white hover:bg-white/10 font-bold py-3 px-8 rounded-full text-center transition-all">
                         Create Account
                     </a>
+                    @endguest
                 </div>
             </div>
-        </section> --}}
+        </section>
     </main>
 
     <!-- Footer -->
