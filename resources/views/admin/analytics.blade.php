@@ -4,6 +4,21 @@
 <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 space-y-4 md:space-y-0">
     <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Analitik Acara</h1>
 
+    <!-- Tombol Export ke Excel dan PDF -->
+    <div class="flex space-x-4">
+        {{-- Tombol Export ke Excel --}}
+        <a href="{{ route('admin.analytics.exportExcel', ['eventId' => $event->id ?? null]) }}"
+            class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <i class="fas fa-file-excel mr-2"></i>Export to Excel
+        </a>
+
+        {{-- Tombol Export ke PDF --}}
+        <a href="{{ route('admin.analytics.exportPdf', ['eventId' => $event->id ?? null]) }}"
+            class="px-4 py-2 bg-red-600 text-white rounded-lg shadow-md hover:bg-red-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-red-500">
+            <i class="fas fa-file-pdf mr-2"></i>Export to PDF
+        </a>
+    </div>
+
     <!-- Event Selector -->
     <div class="w-full md:w-auto">
         <select id="eventSelect" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:focus:ring-indigo-400 dark:focus:border-indigo-400 sm:text-sm" onchange="selectEvent(this.value)">
