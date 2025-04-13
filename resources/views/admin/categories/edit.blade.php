@@ -16,7 +16,7 @@
             enctype="multipart/form-data"
             x-data="{
                 name: '{{ old('name', $category->name) }}',
-                previewImage: '{{ $category->icon }}',
+                previewImage: '{{ $category->icon ? asset('storage/' . $category->icon) : '' }}',
                 description: '{{ old('description', $category->description) }}',
 
                 handleImageUpload(event) {
@@ -53,7 +53,7 @@
 
                 <!-- Icon -->
                 <div>
-                    <label for="icon" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Icon <span class="text-red-500">*</span></label>
+                    <label for="icon" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Icon</label>
                     <div class="mt-1 flex items-center">
                         <template x-if="previewImage">
                             <div class="mr-3 relative">

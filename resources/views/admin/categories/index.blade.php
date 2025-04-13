@@ -30,8 +30,12 @@
         <div class="flex justify-between">
             <div class="flex items-center">
                 <div class="flex-shrink-0 bg-indigo-100 dark:bg-indigo-900 rounded-full p-3">
-                    <!-- Display the icon directly as an image from base64 data -->
-                    <img src="{{ $category->icon }}" alt="{{ $category->name }}" class="h-6 w-6 object-cover">
+                    <!-- Display the icon from storage -->
+                    @if($category->icon && file_exists(public_path('storage/' . $category->icon)))
+                        <img src="{{ asset('storage/' . $category->icon) }}" alt="{{ $category->name }}" class="h-6 w-6 object-cover">
+                    @else
+                        <i class="fas fa-folder text-indigo-600 dark:text-indigo-400 h-6 w-6 flex items-center justify-center"></i>
+                    @endif
                 </div>
                 <div class="ml-4">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-white">{{ $category->name }}</h3>
