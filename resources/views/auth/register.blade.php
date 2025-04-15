@@ -48,7 +48,7 @@
         </div>
 
         <!-- Right Banner -->
-        <div class="w-1/4 relative overflow-hidden flex flex-col justify-center items-center p-8 bg-[#7C0A02] text-white">
+        <div class="w-1/4 relative overflow-hidden flex flex-col justify-center items-center p-8 bg-[#7c0a02] text-white">
             <!-- Text Layer -->
             <div class="z-10 text-center">
                 <h1 class="text-6xl font-bold"  style="font-family: Constantia, Georgia, serif; line-height: 1.4;">WELCOME</h1>
@@ -56,15 +56,15 @@
             </div>
 
             <!-- Camera Icon Positioned Bottom Right -->
-            <img src="{{ asset('storage/login-register/camera-icon.png') }}"
+            <img src="{{ asset('images/camera-icon.png') }}"
                 alt="Camera Icon"
                 class="absolute bottom-6 right-6 w-[45%] max-w-[180px] sm:max-w-[200px] md:max-w-[220px] z-10" />
 
             <!-- Background Pattern -->
             <div class="absolute inset-0 z-0">
-                <img src="{{ asset('storage/login-register/banner-pattern.png') }}"
+                <img src="{{ asset('images/banner-pattern.png') }}"
                     alt="Pattern"
-                    class="object-cover w-full h-full opacity-40" />
+                    class="object-cover w-full h-full opacity-50" />
             </div>
         </div>
     </div>
