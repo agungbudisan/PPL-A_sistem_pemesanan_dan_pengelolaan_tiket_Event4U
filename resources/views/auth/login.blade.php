@@ -69,7 +69,7 @@
 
         <!-- Right Side (Image) -->
         <div class="hidden md:block md:w-1/4 relative">
-            <img src="{{ asset('storage/login-register/moon-banner.png') }}" alt="Login Image" class="object-cover w-full h-full">
+            <img src="{{ asset('images/moon-banner.png') }}" alt="Login Image" class="object-cover w-full h-full">
         </div>
     </div>
 </x-guest-layout>
