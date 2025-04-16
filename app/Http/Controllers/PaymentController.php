@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\SendETicket;
 use App\Models\Order;
 use App\Models\Payment;
 use Illuminate\Http\Request;
@@ -116,6 +118,7 @@ class PaymentController extends Controller
 
         try {
             // For demonstration purposes, immediately set payment status to pending
+            // In production, you would determine this based on your payment gateway
             $paymentStatus = 'pending'; // Options: pending, completed, failed, cancelled
 
             // Create payment record
@@ -128,6 +131,21 @@ class PaymentController extends Controller
 
             // If using a real payment gateway, you would redirect to the payment gateway here
             // and handle the callback in a separate method.
+
+            // Jika pembayaran berhasil (status completed), proses email dan kurangi kuota
+            if ($paymentStatus === 'completed') {
+                // Kurangi kuota tiket
+                $order->ticket->decrement('quota_avail', $order->quantity);
+
+                try {
+                    // Kirim e-ticket
+                    $order = $order->fresh(['ticket.event', 'user']);
+                    Mail::to($order->email)->send(new SendETicket($order, false));
+                    Log::info('E-ticket sent to registered user: ' . $order->email);
+                } catch (\Exception $e) {
+                    Log::error('Failed to send e-ticket: ' . $e->getMessage());
+                }
+            }
 
             return redirect()->route('orders.show', $order)
                 ->with('success', 'Pembayaran berhasil diproses. Menunggu konfirmasi pembayaran.');
@@ -187,11 +205,11 @@ class PaymentController extends Controller
                 ->with('info', 'Pembayaran untuk pesanan ini sudah dilakukan sebelumnya.');
         }
 
-        // For demonstration purposes, immediately set payment status to completed
-        // In production, you would integrate with actual payment gateways
-        $paymentStatus = 'pending'; // Options: pending, completed, failed, cancelled
-
         try {
+            // For demonstration purposes, set payment status to completed
+            // In production, you would determine this based on your payment gateway
+            $paymentStatus = 'completed'; // Simulasi status pembayaran berhasil
+
             // Create payment record
             $payment = Payment::create([
                 'method' => $request->method,
@@ -201,19 +219,21 @@ class PaymentController extends Controller
                 'guest_email' => $request->guest_email,
             ]);
 
-            // Update ticket quota
-            // $ticket = $order->ticket;
-            // $ticket->decrement('quota_avail', $order->quantity);
+            // Jika pembayaran berhasil (status completed), proses email dan kurangi kuota
+            if ($paymentStatus === 'completed') {
+                // Kurangi kuota tiket
+                $order->ticket->decrement('quota_avail', $order->quantity);
+                Log::info('Ticket quota decreased by ' . $order->quantity . ' for ticket ID: ' . $order->ticket->id);
 
-            // If payment completed successfully, send e-ticket email
-            // if ($paymentStatus === 'completed') {
-            //     try {
-            //         Mail::to($order->email)->send(new ETicketMail($order));
-            //     } catch (\Exception $e) {
-            //         // Log the error but continue with the process
-            //         \Log::error('Failed to send e-ticket email: ' . $e->getMessage());
-            //     }
-            // }
+                try {
+                    // Kirim e-ticket dengan eager loading untuk memastikan semua relasi dimuat
+                    $order = $order->fresh(['ticket.event']);
+                    Mail::to($order->email)->send(new SendETicket($order, true));
+                    Log::info('Guest e-ticket sent to: ' . $order->email);
+                } catch (\Exception $e) {
+                    Log::error('Failed to send guest e-ticket: ' . $e->getMessage());
+                }
+            }
 
             // Clear the session after successful payment
             session()->forget('guest_order_reference');
@@ -252,16 +272,31 @@ class PaymentController extends Controller
         ]);
 
         $oldStatus = $payment->status;
-        $payment->status = $request->status;
-        $payment->save();
+        $newStatus = $request->status;
 
-        // Jika status diubah dari selain completed menjadi completed
-        if ($oldStatus !== 'completed' && $request->status === 'completed') {
-            // Kurangi kuota tiket
-            $payment->order->ticket->decrement('quota_avail', $payment->order->quantity);
+        // Hanya update jika status berubah
+        if ($oldStatus !== $newStatus) {
+            $payment->status = $newStatus;
+            $payment->save();
 
-            // Kirim e-ticket
-            // Mail::to($payment->order->email)->send(new ETicketMail($payment->order));
+            // Jika status diubah dari selain completed menjadi completed
+            if ($oldStatus !== 'completed' && $newStatus === 'completed') {
+                // Load order dengan relasi yang diperlukan
+                $order = $payment->order->load(['ticket.event', 'user']);
+
+                // Kurangi kuota tiket
+                $order->ticket->decrement('quota_avail', $order->quantity);
+                Log::info('Ticket quota decreased by ' . $order->quantity . ' for ticket ID: ' . $order->ticket->id);
+
+                // Kirim e-ticket
+                try {
+                    $isGuest = $order->user_id === null; // Tentukan apakah user adalah guest
+                    Mail::to($order->email)->send(new SendETicket($order, $isGuest));
+                    Log::info('E-ticket sent to ' . ($isGuest ? 'guest' : 'user') . ': ' . $order->email);
+                } catch (\Exception $e) {
+                    Log::error('Gagal mengirim e-ticket: ' . $e->getMessage());
+                }
+            }
         }
 
         return redirect()->route('admin.payments.index')
@@ -282,4 +317,53 @@ class PaymentController extends Controller
 
         return view('guest.orders.confirmation', compact('order'));
     }
+
+    /**
+     * Method untuk menguji pengiriman email
+     */
+    // public function testSendEmail(Request $request)
+    // {
+    //     // Hanya bisa diakses di environment local
+    //     if (app()->environment() !== 'local') {
+    //         abort(403, 'Hanya tersedia di development environment.');
+    //     }
+
+    //     $orderId = $request->input('order_id');
+    //     if (!$orderId) {
+    //         return response()->json(['error' => 'Order ID diperlukan'], 400);
+    //     }
+
+    //     // Eager load semua relasi yang dibutuhkan
+    //     $order = Order::with(['ticket.event', 'user'])->findOrFail($orderId);
+
+    //     // Log semua info order untuk debugging
+    //     Log::info('Order details for testing:');
+    //     Log::info('Order ID: ' . $order->id);
+    //     Log::info('Reference: ' . $order->reference);
+    //     Log::info('Email: ' . $order->email);
+
+    //     $isGuest = $order->user_id === null;
+    //     Log::info('Is guest order: ' . ($isGuest ? 'Yes' : 'No'));
+
+    //     try {
+    //         // Kirim email langsung tanpa queue untuk testing
+    //         Mail::to($order->email)->send(new SendETicket($order, $isGuest));
+
+    //         Log::info('Email berhasil dikirim ke ' . $order->email);
+
+    //         return response()->json([
+    //             'success' => true,
+    //             'message' => 'Email berhasil dikirim ke ' . $order->email
+    //         ]);
+    //     } catch (\Exception $e) {
+    //         Log::error('Error saat mengirim email: ' . $e->getMessage());
+    //         Log::error($e->getTraceAsString());
+
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Error saat mengirim email: ' . $e->getMessage(),
+    //             'trace' => $e->getTraceAsString()
+    //         ], 500);
+    //     }
+    // }
 }

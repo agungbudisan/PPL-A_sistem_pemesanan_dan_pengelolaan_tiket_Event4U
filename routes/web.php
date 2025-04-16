@@ -29,7 +29,7 @@ Route::prefix('guest')->group(function () {
     Route::get('/orders/{reference}/payment', [PaymentController::class, 'guestCreate'])->name('guest.payments.create');
     Route::post('/orders/{reference}/payment', [PaymentController::class, 'guestStore'])->name('guest.payments.store');
     Route::get('/orders/{reference}/confirmation', [OrderController::class, 'guestConfirmation'])->name('guest.orders.confirmation');
-    Route::get('/orders/{reference}/download-ticket', [OrderController::class, 'downloadETicketPdf'])->name('guest.orders.download-ticket');
+    Route::get('/orders/{reference}/download-ticket', [OrderController::class, 'downloadETicketPdfGuest'])->name('guest.orders.download-ticket');
 });
 
 /*
