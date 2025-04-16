@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers\Admin;
 
-use Illuminate\Routing\Controller;
-use App\Models\Category;
-use App\Models\Event;
-use App\Models\Ticket;
-use App\Models\Order;
-use App\Models\Payment;
-use Illuminate\Http\Request;
 use Carbon\Carbon;
+use App\Models\Event;
+use App\Models\Order;
+use App\Models\Ticket;
+use App\Models\Payment;
+use App\Models\Category;
+use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf;
+use App\Exports\AnalyticsExport;
+use Illuminate\Routing\Controller;
+use Maatwebsite\Excel\Facades\Excel;
 
 class DashboardController extends Controller
 {
@@ -131,5 +134,69 @@ class DashboardController extends Controller
         }
 
         return view('admin.analytics', $viewData);
+    }
+
+    // Export to Excel
+    public function exportExcel($eventId = null)
+    {
+        // Ambil data yang diperlukan untuk analitik, sama seperti di method analytics()
+        $data = $this->getAnalyticsData($eventId);
+
+        // Pastikan data ada dan valid
+        return Excel::download(new AnalyticsExport(
+            $data['event'],             // Event
+            $data['totalSales'],        // Total Sales
+            $data['totalTicketsSold'],  // Total Tickets Sold
+            $data['ticketTypes']        // Ticket Types
+        ), 'analytics.xlsx');
+    }
+
+
+    // Export to PDF
+    public function exportPdf($eventId = null)
+    {
+        // Ambil data yang diperlukan untuk analitik, sama seperti di method analytics()
+        $data = $this->getAnalyticsData($eventId);
+
+        // Menggunakan DomPDF untuk render PDF
+        $pdf = Pdf::loadView('admin.analytics_pdf', $data);
+
+        return $pdf->download('analytics.pdf');
+    }
+
+    protected function getAnalyticsData($eventId)
+    {
+        if ($eventId) {
+            $event = Event::with(['tickets.orders', 'category'])->findOrFail($eventId);
+
+            $ticketTypes = [];
+            $totalSales = 0;
+            $totalTicketsSold = 0;
+
+            foreach ($event->tickets as $ticket) {
+                $sold = $ticket->orders->sum('quantity');
+                $revenue = $ticket->price * $sold;
+
+                $totalSales += $revenue;
+                $totalTicketsSold += $sold;
+
+                $ticketTypes[] = [
+                    'name' => $ticket->ticket_class,
+                    'sold' => $sold,
+                    'revenue' => $revenue,
+                    'quota' => $ticket->quota_avail,
+                    'percentage' => $ticket->quota_avail > 0 ? ($sold / $ticket->quota_avail) * 100 : 0
+                ];
+            }
+
+            return [
+                'event' => $event,
+                'totalSales' => $totalSales,
+                'totalTicketsSold' => $totalTicketsSold,
+                'ticketTypes' => $ticketTypes
+            ];
+        }
+
+        return []; // Return empty array if no event ID
     }
 }

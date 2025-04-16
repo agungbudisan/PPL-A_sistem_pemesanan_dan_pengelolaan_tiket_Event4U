@@ -31,6 +31,12 @@
             </div>
             @endif
 
+            @if (session('error'))
+            <div class="mb-6 p-4 bg-red-100 border-l-4 border-red-500 text-red-700 rounded-md">
+                {{ session('error') }}
+            </div>
+            @endif
+
             <!-- Success Card -->
             <div class="bg-white rounded-xl shadow-md p-6 mb-6">
                 <div class="flex flex-col items-center justify-center text-center">
@@ -54,7 +60,17 @@
                         </div>
                         <div class="flex justify-between mb-1">
                             <span class="text-gray-600">Metode Pembayaran:</span>
-                            <span>{{ $order->payment->method === 'transfer' ? 'Transfer Bank' : 'E-Wallet' }}</span>
+                            <span>
+                                @if($order->payment->method === 'transfer')
+                                    Transfer Bank
+                                @elseif($order->payment->method === 'ewallet')
+                                    E-Wallet
+                                @elseif($order->payment->method === 'credit_card')
+                                    Kartu Kredit
+                                @else
+                                    {{ $order->payment->method }}
+                                @endif
+                            </span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-gray-600">Tanggal Pembayaran:</span>
@@ -62,22 +78,31 @@
                         </div>
                     </div>
 
-                    <p class="text-sm text-gray-500 mb-6">
-                        E-ticket telah dikirim ke email Anda: <span class="font-medium">{{ $order->email }}</span>
-                    </p>
+                    @if($order->payment->status === 'completed')
+                        <p class="text-sm text-gray-500 mb-6">
+                            E-ticket telah dikirim ke email Anda: <span class="font-medium">{{ $order->email }}</span>
+                        </p>
+                    @else
+                        <p class="text-sm text-gray-500 mb-6">
+                            E-ticket akan dikirim ke email Anda: <span class="font-medium">{{ $order->email }}</span> setelah pembayaran dikonfirmasi oleh admin.
+                        </p>
+                    @endif
 
                     <div class="flex flex-col sm:flex-row gap-3 w-full max-w-md">
                         <a href="{{ route('events.index') }}" class="flex-1 py-2 px-4 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg text-center transition duration-300">
                             Lihat Events Lainnya
                         </a>
+                        @if($order->payment->status === 'completed')
                         <button type="button" onclick="showETicket()" class="flex-1 py-2 px-4 bg-[#7B0015] hover:bg-[#950019] text-white font-medium rounded-lg text-center transition duration-300">
                             Lihat E-Ticket
                         </button>
+                        @endif
                     </div>
                 </div>
             </div>
 
-            <!-- E-Ticket Card -->
+            <!-- E-Ticket Card (hanya tampil jika pembayaran sudah dikonfirmasi) -->
+            @if($order->payment->status === 'completed')
             <div class="bg-white rounded-xl shadow-md overflow-hidden mb-6" id="e-ticket" style="display: none;">
                 <div class="bg-gradient-to-r from-[#7B0015] to-[#AF0020] p-4 text-white">
                     <div class="flex justify-between items-center">
@@ -124,18 +149,17 @@
                     <!-- QR Code -->
                     <div class="flex justify-center mb-6">
                         <div class="p-4 bg-gray-100 rounded">
-                            <!-- In a real application, generate a proper QR code here -->
-                            <div class="w-36 h-36 bg-white p-2 flex flex-col items-center justify-center">
-                                <svg width="120" height="120" viewBox="0 0 120 120">
-                                    <rect x="10" y="10" width="100" height="100" fill="none" stroke="#000" stroke-width="2"></rect>
-                                    <path d="M30,30 L50,30 L50,50 L30,50 Z" fill="#000"></path>
-                                    <path d="M70,30 L90,30 L90,50 L70,50 Z" fill="#000"></path>
-                                    <path d="M30,70 L50,70 L50,90 L30,90 Z" fill="#000"></path>
-                                    <rect x="60" y="60" width="40" height="40" fill="none" stroke="#000" stroke-width="2"></rect>
-                                    <text x="60" y="65" font-size="8" text-anchor="middle" dominant-baseline="middle">{{ $order->reference }}</text>
-                                </svg>
-                                <p class="text-xs text-gray-600 mt-1">SCAN ME</p>
-                            </div>
+                            {!! QrCode::size(180)->generate(
+                                json_encode([
+                                    'reference' => $order->reference,
+                                    'event' => $order->ticket->event->title,
+                                    'ticket_class' => $order->ticket->ticket_class,
+                                    'quantity' => $order->quantity,
+                                    'attendee' => $order->guest_name,
+                                    'email' => $order->email
+                                ])
+                            ) !!}
+                            <p class="text-xs text-center text-gray-600 mt-2">SCAN ME</p>
                         </div>
                     </div>
 
@@ -157,11 +181,12 @@
                 </div>
 
                 <div class="p-4 flex justify-center">
-                    <button type="button" onclick="printETicket()" class="py-2 px-4 bg-gray-800 hover:bg-black text-white font-medium rounded-lg text-center transition duration-300 flex items-center">
-                        <i class="fas fa-print mr-2"></i> Cetak E-Ticket
-                    </button>
+                    <a href="{{ route('guest.orders.download-ticket', $order->reference) }}" class="py-2 px-4 bg-gray-800 hover:bg-black text-white font-medium rounded-lg text-center transition duration-300 flex items-center">
+                        <i class="fas fa-download mr-2"></i> Unduh E-Ticket
+                    </a>
                 </div>
             </div>
+            @endif
 
             <!-- Order Details -->
             <div class="bg-white rounded-xl shadow-md overflow-hidden">

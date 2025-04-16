@@ -53,12 +53,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Order Process
     Route::prefix('orders')->group(function () {
+        Route::get('/', [OrderController::class, 'index'])->name('orders.index');
         Route::get('/tickets/{ticket}/create', [OrderController::class, 'create'])->name('orders.create');
         Route::post('/tickets/{ticket}', [OrderController::class, 'store'])->name('orders.store');
         Route::get('/{order}', [OrderController::class, 'show'])->name('orders.show');
         Route::get('/{order}/payment', [PaymentController::class, 'create'])->name('payments.create');
         Route::post('/{order}/payment', [PaymentController::class, 'store'])->name('payments.store');
-        Route::get('/', [OrderController::class, 'index'])->name('orders.index');
+        Route::get('/{order}/download-ticket', [OrderController::class, 'downloadETicketPdf'])->name('orders.download-ticket');
     });
 });
 
@@ -101,6 +102,9 @@ Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
     // Export Routes
     Route::get('/payments/export', [PaymentController::class, 'export'])->name('payments.export');
     Route::get('/payments/export-pdf', [PaymentController::class, 'exportPdf'])->name('payments.export-pdf');
+
+    Route::get('/analytics/export-excel/{eventId?}', [DashboardController::class, 'exportExcel'])->name('analytics.exportExcel');
+    Route::get('/analytics/export-pdf/{eventId?}', [DashboardController::class, 'exportPdf'])->name('analytics.exportPdf');
 });
 
 require __DIR__.'/auth.php';

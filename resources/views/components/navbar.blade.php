@@ -45,7 +45,7 @@
                                 <i class="fas fa-home mr-2"></i> Dashboard
                             </a>
                         @endif
-                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        <a href="{{ route('orders.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                             <i class="fas fa-history mr-2"></i> Order History
                         </a>
                         <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
@@ -87,7 +87,7 @@
                         <i class="fas fa-home mr-2"></i> Dashboard
                     </a>
                 @endif
-                <a href="#" class="block py-2 text-[#F7ECAC] hover:text-white">
+                <a href="{{ route('orders.index') }}" class="block py-2 text-[#F7ECAC] hover:text-white">
                     <i class="fas fa-history mr-2"></i> Order History
                 </a>
                 <a href="{{ route('profile.edit') }}" class="block py-2 text-[#F7ECAC] hover:text-white">
