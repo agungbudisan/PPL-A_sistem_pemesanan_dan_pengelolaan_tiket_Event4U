@@ -246,7 +246,32 @@ class OrderController extends Controller
             return back()->with('error', 'E-ticket hanya tersedia setelah pembayaran dikonfirmasi oleh admin.');
         }
 
-        $pdf = Pdf::loadView('pdfs.eticket', compact('order'));
+        // Generate QR Code sebagai SVG Base64
+        $qrData = [
+            'order_id' => $order->id,
+            'event' => $order->ticket->event->title,
+            'ticket_class' => $order->ticket->ticket_class,
+            'quantity' => $order->quantity,
+            'attendee' => $order->user->name,
+            'email' => $order->email
+        ];
+
+        $jsonData = json_encode($qrData);
+
+        // Generate QR Code sebagai SVG (tidak memerlukan Imagick)
+        $svgQrCode = QrCode::format('svg')
+            ->size(200)
+            ->margin(1)
+            ->generate($jsonData);
+
+        // Convert SVG ke Base64
+        $qrCodeBase64 = 'data:image/svg+xml;base64,' . base64_encode($svgQrCode);
+
+        // Load PDF view dengan mengirimkan QR Code Base64
+        $pdf = Pdf::loadView('pdfs.eticket', [
+            'order' => $order,
+            'qrCodeBase64' => $qrCodeBase64
+        ]);
 
         return $pdf->download('e-ticket-' . $order->id . '.pdf');
     }
@@ -266,7 +291,32 @@ class OrderController extends Controller
                 ->with('error', 'E-ticket hanya tersedia setelah pembayaran dikonfirmasi oleh admin.');
         }
 
-        $pdf = Pdf::loadView('pdfs.guest-eticket', compact('order'));
+        // Generate QR Code sebagai SVG Base64
+        $qrData = [
+            'reference' => $order->reference,
+            'event' => $order->ticket->event->title,
+            'ticket_class' => $order->ticket->ticket_class,
+            'quantity' => $order->quantity,
+            'attendee' => $order->guest_name,
+            'email' => $order->email
+        ];
+
+        $jsonData = json_encode($qrData);
+
+        // Generate QR Code sebagai SVG (tidak memerlukan Imagick)
+        $svgQrCode = QrCode::format('svg')
+            ->size(200)
+            ->margin(1)
+            ->generate($jsonData);
+
+        // Convert SVG ke Base64
+        $qrCodeBase64 = 'data:image/svg+xml;base64,' . base64_encode($svgQrCode);
+
+        // Load PDF view dengan mengirimkan QR Code Base64
+        $pdf = Pdf::loadView('pdfs.guest-eticket', [
+            'order' => $order,
+            'qrCodeBase64' => $qrCodeBase64
+        ]);
 
         return $pdf->download('e-ticket-' . $reference . '.pdf');
     }

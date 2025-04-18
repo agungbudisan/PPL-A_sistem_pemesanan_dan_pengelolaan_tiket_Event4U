@@ -169,16 +169,13 @@
                 </div>
 
                 <div class="qr-code">
-                    {!! QrCode::size(150)->generate(
-                        json_encode([
-                            'order_id' => $order->id,
-                            'event' => $order->ticket->event->title,
-                            'ticket_class' => $order->ticket->ticket_class,
-                            'quantity' => $order->quantity,
-                            'attendee' => $order->user_id ? $order->user->name : $order->guest_name,
-                            'email' => $order->email
-                        ])
-                    ) !!}
+                    @if(isset($qrCodeBase64) && $qrCodeBase64)
+                        <img src="{{ $qrCodeBase64 }}" alt="QR Code Tiket" style="width:150px; height:150px;">
+                    @else
+                        <div style="width:150px; height:150px; border:1px solid #ddd; margin:0 auto; text-align:center; line-height:150px;">
+                            QR Code
+                        </div>
+                    @endif
                     <div class="qr-code-text">SCAN ME</div>
                 </div>
 

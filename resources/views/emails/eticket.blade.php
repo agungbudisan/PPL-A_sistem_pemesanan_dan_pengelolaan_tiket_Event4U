@@ -61,6 +61,15 @@
             text-align: center;
             margin: 20px 0;
         }
+        .qrcode img {
+            width: 150px;
+            height: 150px;
+        }
+        .qrcode-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
         .instructions {
             background-color: #fffde7;
             padding: 15px;
@@ -144,9 +153,14 @@
             </table>
         </div>
 
-        <div class="barcode">
+        <div class="qrcode" style="text-align: center; margin: 20px 0;">
             <p>Referensi Tiket: <strong>{{ $order->reference }}</strong></p>
-            <p>Harap tunjukkan kode ini saat masuk ke acara.</p>
+
+            @if(isset($hasQrCode) && $hasQrCode)
+                <p>QR Code tiket telah dilampirkan ke email ini. Harap simpan dan tunjukkan saat masuk ke acara.</p>
+            @else
+                <p>Harap tunjukkan nomor referensi ini saat masuk ke acara.</p>
+            @endif
         </div>
     </div>
 
