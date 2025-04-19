@@ -30,6 +30,12 @@ Route::prefix('guest')->group(function () {
     Route::post('/orders/{reference}/payment', [PaymentController::class, 'guestStore'])->name('guest.payments.store');
     Route::get('/orders/{reference}/confirmation', [OrderController::class, 'guestConfirmation'])->name('guest.orders.confirmation');
     Route::get('/orders/{reference}/download-ticket', [OrderController::class, 'downloadETicketPdfGuest'])->name('guest.orders.download-ticket');
+
+    // Midtrans routes
+    Route::get('/orders/{reference}/payment/midtrans', [PaymentController::class, 'processMidtransPaymentGuest'])
+        ->name('guest.payments.midtrans');
+    Route::get('/orders/{reference}/payment/midtrans/finish', [PaymentController::class, 'finishMidtransPaymentGuest'])
+        ->name('guest.payments.midtrans.finish');
 });
 
 /*
@@ -60,6 +66,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/{order}/payment', [PaymentController::class, 'create'])->name('payments.create');
         Route::post('/{order}/payment', [PaymentController::class, 'store'])->name('payments.store');
         Route::get('/{order}/download-ticket', [OrderController::class, 'downloadETicketPdf'])->name('orders.download-ticket');
+
+        // Midtrans routes
+        Route::get('/{order}/payment/midtrans', [PaymentController::class, 'processMidtransPayment'])
+            ->name('payments.midtrans');
+        Route::get('/{order}/payment/midtrans/finish', [PaymentController::class, 'finishMidtransPayment'])
+            ->name('payments.midtrans.finish');
     });
 });
 

@@ -7,19 +7,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <style>
-        /* Menghilangkan panah atas/bawah pada input number */
-        input[type=number]::-webkit-inner-spin-button,
-        input[type=number]::-webkit-outer-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-
-        /* Untuk Firefox */
-        input[type=number] {
-            -moz-appearance: textfield;
-        }
-    </style>
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans">
 
@@ -101,107 +88,26 @@
                     </div>
                 </div>
 
-                <form action="{{ route('payments.store', $order) }}" method="POST" x-data="{ paymentMethod: 'transfer' }">
+                <form action="{{ route('payments.store', $order) }}" method="POST">
                     @csrf
+                    <input type="hidden" name="method" value="midtrans">
 
+                    <!-- Payment Method Information -->
                     <div class="mb-6">
-                        <label class="block text-gray-700 font-medium mb-2">Metode Pembayaran</label>
-
-                        <!-- Bank Transfer -->
-                        <div class="mb-3">
-                            <label class="block p-4 border rounded-md cursor-pointer" :class="paymentMethod === 'transfer' ? 'border-[#7B0015] bg-red-50' : 'border-gray-300'">
-                                <div class="flex items-start">
-                                    <input type="radio" name="method" value="transfer" class="mt-1 mr-3" x-model="paymentMethod">
-                                    <div class="flex-1">
-                                        <div class="flex items-center">
-                                            <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-3">
-                                                <i class="fas fa-university text-[#7B0015]"></i>
-                                            </div>
-                                            <div>
-                                                <p class="font-semibold">Transfer Bank</p>
-                                                <p class="text-sm text-gray-600">BCA, BNI, Mandiri, BRI</p>
-                                            </div>
-                                        </div>
-
-                                        <div class="mt-4 ml-12 text-sm" x-show="paymentMethod === 'transfer'">
-                                            <div class="p-3 bg-gray-50 rounded-md">
-                                                <p class="font-semibold">Instruksi Pembayaran:</p>
-                                                <ol class="mt-2 ml-4 list-decimal text-gray-700">
-                                                    <li class="mb-1">Transfer ke rekening <span class="font-medium">1234567890</span> a.n. Event 4 U</li>
-                                                    <li class="mb-1">Jumlah transfer harus sama persis dengan total pembayaran</li>
-                                                    <li>Sertakan ID pemesanan #{{ $order->id }} pada keterangan transfer</li>
-                                                </ol>
-                                            </div>
-                                        </div>
-                                    </div>
+                        <div class="p-4 border border-[#7B0015] bg-red-50 rounded-md">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-3">
+                                    <i class="fas fa-credit-card text-[#7B0015]"></i>
                                 </div>
-                            </label>
-                        </div>
-
-                        <!-- E-Wallet -->
-                        <div class="mb-3">
-                            <label class="block p-4 border rounded-md cursor-pointer" :class="paymentMethod === 'ewallet' ? 'border-[#7B0015] bg-red-50' : 'border-gray-300'">
-                                <div class="flex items-start">
-                                    <input type="radio" name="method" value="ewallet" class="mt-1 mr-3" x-model="paymentMethod">
-                                    <div class="flex-1">
-                                        <div class="flex items-center">
-                                            <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-3">
-                                                <i class="fas fa-wallet text-[#7B0015]"></i>
-                                            </div>
-                                            <div>
-                                                <p class="font-semibold">E-Wallet</p>
-                                                <p class="text-sm text-gray-600">GoPay, OVO, DANA, LinkAja</p>
-                                            </div>
-                                        </div>
-
-                                        <div class="mt-4 ml-12 text-sm" x-show="paymentMethod === 'ewallet'">
-                                            <div class="p-3 bg-gray-50 rounded-md">
-                                                <p class="font-semibold">Instruksi Pembayaran:</p>
-                                                <ol class="mt-2 ml-4 list-decimal text-gray-700">
-                                                    <li class="mb-1">Scan QR Code yang akan ditampilkan setelah konfirmasi</li>
-                                                    <li class="mb-1">Pastikan nominal pembayaran sesuai</li>
-                                                    <li>Konfirmasi pembayaran otomatis setelah pembayaran berhasil</li>
-                                                </ol>
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div>
+                                    <p class="font-semibold">Midtrans Payment Gateway</p>
+                                    <p class="text-sm text-gray-600">Kartu Kredit, Bank Transfer, E-Wallet, QRIS, dll</p>
                                 </div>
-                            </label>
+                            </div>
+                            <div class="mt-4 ml-12 text-sm">
+                                <p>Anda akan diarahkan ke halaman pembayaran Midtrans yang aman setelah mengklik tombol "Bayar Sekarang".</p>
+                            </div>
                         </div>
-
-                        <!-- Credit Card -->
-                        <div class="mb-3">
-                            <label class="block p-4 border rounded-md cursor-pointer" :class="paymentMethod === 'credit_card' ? 'border-[#7B0015] bg-red-50' : 'border-gray-300'">
-                                <div class="flex items-start">
-                                    <input type="radio" name="method" value="credit_card" class="mt-1 mr-3" x-model="paymentMethod">
-                                    <div class="flex-1">
-                                        <div class="flex items-center">
-                                            <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-3">
-                                                <i class="fas fa-credit-card text-[#7B0015]"></i>
-                                            </div>
-                                            <div>
-                                                <p class="font-semibold">Kartu Kredit</p>
-                                                <p class="text-sm text-gray-600">Visa, Mastercard, JCB</p>
-                                            </div>
-                                        </div>
-
-                                        <div class="mt-4 ml-12 text-sm" x-show="paymentMethod === 'credit_card'">
-                                            <div class="p-3 bg-gray-50 rounded-md">
-                                                <p class="font-semibold">Informasi:</p>
-                                                <ul class="mt-2 ml-4 list-disc text-gray-700">
-                                                    <li class="mb-1">Pembayaran diproses melalui gateway pembayaran aman</li>
-                                                    <li class="mb-1">Anda akan diarahkan ke halaman pembayaran setelah mengklik "Bayar Sekarang"</li>
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </label>
-                        </div>
-
-                        @error('method')
-                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                        @enderror
                     </div>
 
                     <div class="bg-gray-100 p-4 rounded-lg mb-6">
