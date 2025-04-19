@@ -144,11 +144,11 @@
                 </tr>
                 <tr>
                     <td>Harga Tiket:</td>
-                    <td>Rp {{ number_format($order->ticket->price, 0, ',', '.') }}</td>
+                    <td>Rp{{ number_format($order->ticket->price, 2, ',', '.') }}</td>
                 </tr>
                 <tr>
                     <td>Total Harga:</td>
-                    <td>Rp {{ number_format($order->total_price, 0, ',', '.') }}</td>
+                    <td>Rp{{ number_format($order->total_price, 2, ',', '.') }}</td>
                 </tr>
             </table>
         </div>

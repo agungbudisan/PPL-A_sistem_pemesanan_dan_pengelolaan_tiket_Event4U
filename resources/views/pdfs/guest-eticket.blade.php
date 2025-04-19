@@ -133,9 +133,9 @@
                 <div class="event-title">{{ $order->ticket->event->title }}</div>
 
                 <div class="event-details">
-                    <div class="event-meta">📅 {{ $order->ticket->event->start_event->format('l, d F Y') }}</div>
-                    <div class="event-meta">🕒 {{ $order->ticket->event->start_event->format('H:i') }} WIB</div>
-                    <div class="event-meta">📍 {{ $order->ticket->event->location }}</div>
+                    <div class="event-meta"><strong>Tanggal:</strong> {{ $order->ticket->event->start_event->format('l, d F Y') }}</div>
+                    <div class="event-meta"><strong>Waktu:</strong> {{ $order->ticket->event->start_event->format('H:i') }} WIB</div>
+                    <div class="event-meta"><strong>Lokasi:</strong> {{ $order->ticket->event->location }}</div>
                 </div>
 
                 <div class="ticket-info">
@@ -149,7 +149,7 @@
                     </div>
                     <div>
                         <div class="ticket-info-label">HARGA</div>
-                        <div class="ticket-info-value">Rp{{ number_format($order->total_price, 0, ',', '.') }}</div>
+                        <div class="ticket-info-value">Rp{{ number_format($order->total_price, 2, ',', '.') }}</div>
                     </div>
                 </div>
 
