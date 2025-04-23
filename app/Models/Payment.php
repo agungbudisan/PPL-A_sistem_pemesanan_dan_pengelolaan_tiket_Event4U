@@ -20,8 +20,10 @@ class Payment extends Model
         'guest_email',
         'payment_date',
         'order_id',
-        'payment_gateway_reference',
-        'transaction_id'
+        'transaction_id',
+        'snap_token',
+        'payment_type',
+        'payment_data'
     ];
 
     /**

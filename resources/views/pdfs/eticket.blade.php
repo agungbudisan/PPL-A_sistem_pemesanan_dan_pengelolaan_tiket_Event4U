@@ -115,6 +115,15 @@
             color: #7B0015;
             font-size: 28px;
         }
+        .icon {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            margin-right: 6px;
+            background-repeat: no-repeat;
+            background-size: contain;
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body>
@@ -133,9 +142,9 @@
                 <div class="event-title">{{ $order->ticket->event->title }}</div>
 
                 <div class="event-details">
-                    <div class="event-meta">📅 {{ $order->ticket->event->start_event->format('l, d F Y') }}</div>
-                    <div class="event-meta">🕒 {{ $order->ticket->event->start_event->format('H:i') }} WIB</div>
-                    <div class="event-meta">📍 {{ $order->ticket->event->location }}</div>
+                    <div class="event-meta"><strong>Tanggal:</strong> {{ $order->ticket->event->start_event->format('l, d F Y') }}</div>
+                    <div class="event-meta"><strong>Waktu:</strong> {{ $order->ticket->event->start_event->format('H:i') }} WIB</div>
+                    <div class="event-meta"><strong>Lokasi:</strong> {{ $order->ticket->event->location }}</div>
                 </div>
 
                 <div class="ticket-info">
@@ -149,7 +158,7 @@
                     </div>
                     <div>
                         <div class="ticket-info-label">HARGA</div>
-                        <div class="ticket-info-value">Rp{{ number_format($order->total_price, 0, ',', '.') }}</div>
+                        <div class="ticket-info-value">Rp{{ number_format($order->total_price, 2, ',', '.') }}</div>
                     </div>
                 </div>
 
@@ -169,16 +178,13 @@
                 </div>
 
                 <div class="qr-code">
-                    {!! QrCode::size(150)->generate(
-                        json_encode([
-                            'order_id' => $order->id,
-                            'event' => $order->ticket->event->title,
-                            'ticket_class' => $order->ticket->ticket_class,
-                            'quantity' => $order->quantity,
-                            'attendee' => $order->user_id ? $order->user->name : $order->guest_name,
-                            'email' => $order->email
-                        ])
-                    ) !!}
+                    @if(isset($qrCodeBase64) && $qrCodeBase64)
+                        <img src="{{ $qrCodeBase64 }}" alt="QR Code Tiket" style="width:150px; height:150px;">
+                    @else
+                        <div style="width:150px; height:150px; border:1px solid #ddd; margin:0 auto; text-align:center; line-height:150px;">
+                            QR Code
+                        </div>
+                    @endif
                     <div class="qr-code-text">SCAN ME</div>
                 </div>
 

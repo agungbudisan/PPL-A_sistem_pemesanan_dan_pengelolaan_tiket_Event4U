@@ -5,15 +5,18 @@ namespace App\Http\Controllers;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\SendETicket;
 use App\Models\Order;
 use App\Models\Payment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class PaymentController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth')->only(['create', 'store', 'show']);
+        $this->middleware('auth')->only(['create', 'store', 'show', 'processMidtransPayment', 'finishMidtransPayment']);
         $this->middleware('admin')->only(['adminIndex', 'updateStatus']);
     }
 
@@ -30,6 +33,7 @@ class PaymentController extends Controller
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('method', 'like', "%{$search}%")
+                ->orWhere('transaction_id', 'like', "%{$search}%")
                 ->orWhereHas('order', function($subq) use ($search) {
                     $subq->where('email', 'like', "%{$search}%");
                 });
@@ -81,7 +85,8 @@ class PaymentController extends Controller
                 ->with('info', 'Pembayaran untuk pesanan ini sudah dilakukan sebelumnya.');
         }
 
-        return view('payments.create', compact('order'));
+        // Langsung arahkan ke pembayaran Midtrans
+        return redirect()->route('payments.midtrans', $order);
     }
 
     /**
@@ -110,34 +115,8 @@ class PaymentController extends Controller
                 ->with('info', 'Pembayaran untuk pesanan ini sudah dilakukan sebelumnya.');
         }
 
-        $request->validate([
-            'method' => 'required|string|in:transfer,ewallet,credit_card',
-        ]);
-
-        try {
-            // For demonstration purposes, immediately set payment status to pending
-            $paymentStatus = 'pending'; // Options: pending, completed, failed, cancelled
-
-            // Create payment record
-            $payment = Payment::create([
-                'method' => $request->method,
-                'status' => $paymentStatus,
-                'payment_date' => now(),
-                'order_id' => $order->id,
-            ]);
-
-            // If using a real payment gateway, you would redirect to the payment gateway here
-            // and handle the callback in a separate method.
-
-            return redirect()->route('orders.show', $order)
-                ->with('success', 'Pembayaran berhasil diproses. Menunggu konfirmasi pembayaran.');
-
-        } catch (\Exception $e) {
-            // Log the error
-            Log::error('Payment processing error: ' . $e->getMessage());
-
-            return back()->with('error', 'Terjadi kesalahan saat memproses pembayaran. Silakan coba lagi.');
-        }
+        // Langsung arahkan ke pembayaran Midtrans
+        return redirect()->route('payments.midtrans', $order);
     }
 
     /**
@@ -154,7 +133,8 @@ class PaymentController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
-        return view('guest.payments.create', compact('order'));
+        // Langsung arahkan ke pembayaran Midtrans
+        return redirect()->route('guest.payments.midtrans', $reference);
     }
 
     /**
@@ -169,64 +149,282 @@ class PaymentController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
-        $request->validate([
-            'method' => 'required|string|in:transfer,ewallet,credit_card',
-            'guest_email' => 'required|email',
-        ]);
-
-        // Pastikan email yang digunakan sesuai dengan email pada order
-        if ($order->email !== $request->guest_email) {
-            return back()->withErrors([
-                'guest_email' => 'Email yang dimasukkan tidak sesuai dengan email pada pesanan.'
-            ])->withInput();
-        }
-
         // Check if payment already exists
         if ($order->payment) {
             return redirect()->route('guest.orders.confirmation', $reference)
                 ->with('info', 'Pembayaran untuk pesanan ini sudah dilakukan sebelumnya.');
         }
 
-        // For demonstration purposes, immediately set payment status to completed
-        // In production, you would integrate with actual payment gateways
-        $paymentStatus = 'pending'; // Options: pending, completed, failed, cancelled
+        // Langsung arahkan ke pembayaran Midtrans
+        return redirect()->route('guest.payments.midtrans', $reference);
+    }
+
+    /**
+     * Memproses pembayaran dengan Midtrans untuk user terotentikasi
+     */
+    public function processMidtransPayment(Order $order)
+    {
+        // Check if order belongs to authenticated user
+        if ($order->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        // Check if the order was created within the last hour
+        $orderCreatedAt = $order->order_date;
+        $now = now();
+        $diffInHours = $now->diffInHours($orderCreatedAt);
+
+        if ($diffInHours >= 1) {
+            return redirect()->route('orders.index')
+                ->with('error', 'Batas waktu pembayaran telah habis. Silakan buat pesanan baru.');
+        }
+
+        // Check if payment already exists
+        if ($order->payment) {
+            return redirect()->route('orders.show', $order)
+                ->with('info', 'Pembayaran untuk pesanan ini sudah dilakukan sebelumnya.');
+        }
 
         try {
-            // Create payment record
+            // Setting Midtrans configuration
+            \Midtrans\Config::$serverKey = config('midtrans.server_key');
+            \Midtrans\Config::$isProduction = config('midtrans.is_production');
+            \Midtrans\Config::$isSanitized = config('midtrans.is_sanitized');
+            \Midtrans\Config::$is3ds = config('midtrans.is_3ds');
+
+            // Buat ID transaksi unik
+            $transactionId = 'ORDER-' . $order->id . '-' . Str::random(8);
+
+            // Set parameter untuk Midtrans
+            $params = [
+                'transaction_details' => [
+                    'order_id' => $transactionId,
+                    'gross_amount' => (int) $order->total_price,
+                ],
+                'customer_details' => [
+                    'first_name' => $order->user->name,
+                    'email' => $order->email,
+                ],
+                'item_details' => [
+                    [
+                        'id' => $order->ticket->id,
+                        'price' => (int) $order->ticket->price,
+                        'quantity' => $order->quantity,
+                        'name' => $order->ticket->event->title . ' - ' . $order->ticket->ticket_class,
+                    ],
+                ],
+                'callbacks' => [
+                    'finish' => route('payments.midtrans.finish', $order->id),
+                ],
+            ];
+
+            // Dapatkan Snap Token
+            $snapToken = \Midtrans\Snap::getSnapToken($params);
+
+            // Buat payment record
             $payment = Payment::create([
-                'method' => $request->method,
-                'status' => $paymentStatus,
+                'method' => 'midtrans',
+                'status' => 'pending',
+                'transaction_id' => $transactionId,
+                'snap_token' => $snapToken,
                 'payment_date' => now(),
                 'order_id' => $order->id,
-                'guest_email' => $request->guest_email,
             ]);
 
-            // Update ticket quota
-            // $ticket = $order->ticket;
-            // $ticket->decrement('quota_avail', $order->quantity);
-
-            // If payment completed successfully, send e-ticket email
-            // if ($paymentStatus === 'completed') {
-            //     try {
-            //         Mail::to($order->email)->send(new ETicketMail($order));
-            //     } catch (\Exception $e) {
-            //         // Log the error but continue with the process
-            //         \Log::error('Failed to send e-ticket email: ' . $e->getMessage());
-            //     }
-            // }
-
-            // Clear the session after successful payment
-            session()->forget('guest_order_reference');
-
-            return redirect()->route('guest.orders.confirmation', $reference)
-                ->with('success', 'Pembayaran berhasil diproses. E-ticket telah dikirim ke email Anda.');
+            // Return view dengan snap token
+            return view('payments.midtrans', [
+                'order' => $order,
+                'snap_token' => $snapToken
+            ]);
 
         } catch (\Exception $e) {
-            // Log the error
-            Log::error('Payment processing error: ' . $e->getMessage());
-
-            return back()->with('error', 'Terjadi kesalahan saat memproses pembayaran. Silakan coba lagi.');
+            Log::error('Midtrans Error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Memproses pembayaran dengan Midtrans untuk guest user
+     */
+    public function processMidtransPaymentGuest($reference)
+    {
+        $order = Order::where('reference', $reference)
+            ->with('ticket.event')
+            ->firstOrFail();
+
+        // Verifikasi referensi di session
+        if (!session('guest_order_reference') || session('guest_order_reference') !== $reference) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        // Cek apakah sudah ada pembayaran
+        if ($order->payment) {
+            return redirect()->route('guest.orders.confirmation', $reference)
+                ->with('info', 'Pembayaran untuk order ini sudah dibuat.');
+        }
+
+        try {
+            // Setting Midtrans configuration
+            \Midtrans\Config::$serverKey = config('midtrans.server_key');
+            \Midtrans\Config::$isProduction = config('midtrans.is_production');
+            \Midtrans\Config::$isSanitized = config('midtrans.is_sanitized');
+            \Midtrans\Config::$is3ds = config('midtrans.is_3ds');
+
+            // Buat ID transaksi unik
+            $transactionId = 'GUEST-' . $reference . '-' . Str::random(8);
+
+            // Set parameter untuk Midtrans
+            $params = [
+                'transaction_details' => [
+                    'order_id' => $transactionId,
+                    'gross_amount' => (int) $order->total_price,
+                ],
+                'customer_details' => [
+                    'first_name' => $order->guest_name,
+                    'email' => $order->email,
+                    'phone' => $order->guest_phone,
+                ],
+                'item_details' => [
+                    [
+                        'id' => $order->ticket->id,
+                        'price' => (int) $order->ticket->price,
+                        'quantity' => $order->quantity,
+                        'name' => $order->ticket->event->title . ' - ' . $order->ticket->ticket_class,
+                    ],
+                ],
+                'callbacks' => [
+                    'finish' => route('guest.payments.midtrans.finish', $reference),
+                ],
+            ];
+
+            // Dapatkan Snap Token
+            $snapToken = \Midtrans\Snap::getSnapToken($params);
+
+            // Buat payment record
+            $payment = Payment::create([
+                'method' => 'midtrans',
+                'status' => 'pending',
+                'transaction_id' => $transactionId,
+                'snap_token' => $snapToken,
+                'payment_date' => now(),
+                'order_id' => $order->id,
+                'guest_email' => $order->email,
+            ]);
+
+            // Return view dengan snap token
+            return view('guest.payments.midtrans', [
+                'order' => $order,
+                'snap_token' => $snapToken
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Midtrans Error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Handle callback setelah pembayaran selesai (untuk User)
+     */
+    public function finishMidtransPayment(Order $order, Request $request)
+    {
+        // Verifikasi hak akses
+        if ($order->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        // Cek apakah ada data transaksi dari Midtrans
+        if ($request->has('transaction_status') && $request->has('order_id')) {
+            // Cari payment berdasarkan transaction_id
+            $payment = Payment::where('transaction_id', $request->order_id)
+                ->where('order_id', $order->id)
+                ->first();
+
+            if ($payment) {
+                // Update status payment berdasarkan status transaksi
+                $transactionStatus = $request->transaction_status;
+
+                if ($transactionStatus == 'settlement' || $transactionStatus == 'capture') {
+                    $payment->status = 'completed';
+                    $payment->save();
+
+                    // Proses e-ticket
+                    $order->ticket->decrement('quota_avail', $order->quantity);
+
+                    try {
+                        $order = $order->fresh(['ticket.event', 'user']);
+                        Mail::to($order->email)->send(new SendETicket($order, false));
+                        Log::info('E-ticket sent to registered user: ' . $order->email);
+                    } catch (\Exception $e) {
+                        Log::error('Failed to send e-ticket: ' . $e->getMessage());
+                    }
+
+                    return redirect()->route('orders.show', $order)
+                        ->with('success', 'Pembayaran berhasil! E-ticket telah dikirim ke email Anda.');
+                } else if ($transactionStatus == 'pending') {
+                    return redirect()->route('orders.show', $order)
+                        ->with('info', 'Pembayaran sedang dalam proses. Kami akan mengirim e-ticket setelah pembayaran dikonfirmasi.');
+                } else {
+                    return redirect()->route('orders.show', $order)
+                        ->with('error', 'Pembayaran gagal atau dibatalkan.');
+                }
+            }
+        }
+
+        return redirect()->route('orders.show', $order)
+            ->with('info', 'Status pembayaran akan diperbarui segera.');
+    }
+
+    /**
+     * Handle callback setelah pembayaran selesai (untuk Guest)
+     */
+    public function finishMidtransPaymentGuest($reference, Request $request)
+    {
+        $order = Order::where('reference', $reference)->firstOrFail();
+
+        // Cek apakah ada data transaksi dari Midtrans
+        if ($request->has('transaction_status') && $request->has('order_id')) {
+            // Cari payment berdasarkan transaction_id
+            $payment = Payment::where('transaction_id', $request->order_id)
+                ->where('order_id', $order->id)
+                ->first();
+
+            if ($payment) {
+                // Update status payment berdasarkan status transaksi
+                $transactionStatus = $request->transaction_status;
+
+                if ($transactionStatus == 'settlement' || $transactionStatus == 'capture') {
+                    $payment->status = 'completed';
+                    $payment->save();
+
+                    // Proses e-ticket
+                    $order->ticket->decrement('quota_avail', $order->quantity);
+
+                    try {
+                        $order = $order->fresh(['ticket.event']);
+                        Mail::to($order->email)->send(new SendETicket($order, true));
+                        Log::info('E-ticket sent to guest: ' . $order->email);
+                    } catch (\Exception $e) {
+                        Log::error('Failed to send e-ticket: ' . $e->getMessage());
+                    }
+
+                    // Hapus referensi dari session
+                    session()->forget('guest_order_reference');
+
+                    return redirect()->route('guest.orders.confirmation', $reference)
+                        ->with('success', 'Pembayaran berhasil! E-ticket telah dikirim ke email Anda.');
+                } else if ($transactionStatus == 'pending') {
+                    return redirect()->route('guest.orders.confirmation', $reference)
+                        ->with('info', 'Pembayaran sedang dalam proses. Kami akan mengirim e-ticket setelah pembayaran dikonfirmasi.');
+                } else {
+                    return redirect()->route('guest.orders.confirmation', $reference)
+                        ->with('error', 'Pembayaran gagal atau dibatalkan.');
+                }
+            }
+        }
+
+        return redirect()->route('guest.orders.confirmation', $reference)
+            ->with('info', 'Status pembayaran akan diperbarui segera.');
     }
 
     /**
@@ -252,16 +450,31 @@ class PaymentController extends Controller
         ]);
 
         $oldStatus = $payment->status;
-        $payment->status = $request->status;
-        $payment->save();
+        $newStatus = $request->status;
 
-        // Jika status diubah dari selain completed menjadi completed
-        if ($oldStatus !== 'completed' && $request->status === 'completed') {
-            // Kurangi kuota tiket
-            $payment->order->ticket->decrement('quota_avail', $payment->order->quantity);
+        // Hanya update jika status berubah
+        if ($oldStatus !== $newStatus) {
+            $payment->status = $newStatus;
+            $payment->save();
 
-            // Kirim e-ticket
-            // Mail::to($payment->order->email)->send(new ETicketMail($payment->order));
+            // Jika status diubah dari selain completed menjadi completed
+            if ($oldStatus !== 'completed' && $newStatus === 'completed') {
+                // Load order dengan relasi yang diperlukan
+                $order = $payment->order->load(['ticket.event', 'user']);
+
+                // Kurangi kuota tiket
+                $order->ticket->decrement('quota_avail', $order->quantity);
+                Log::info('Ticket quota decreased by ' . $order->quantity . ' for ticket ID: ' . $order->ticket->id);
+
+                // Kirim e-ticket
+                try {
+                    $isGuest = $order->user_id === null; // Tentukan apakah user adalah guest
+                    Mail::to($order->email)->send(new SendETicket($order, $isGuest));
+                    Log::info('E-ticket sent to ' . ($isGuest ? 'guest' : 'user') . ': ' . $order->email);
+                } catch (\Exception $e) {
+                    Log::error('Gagal mengirim e-ticket: ' . $e->getMessage());
+                }
+            }
         }
 
         return redirect()->route('admin.payments.index')
