@@ -109,7 +109,8 @@ Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
 
     // Payment Management
     Route::get('/payments', [PaymentController::class, 'adminIndex'])->name('payments.index');
-    Route::post('/payments/{payment}/update-status', [PaymentController::class, 'updateStatus'])->name('payments.updateStatus');
+    Route::get('/payments/{payment}', [PaymentController::class, 'adminShow'])->name('payments.show');
+    Route::put('/payments/{payment}/update-status', [PaymentController::class, 'updateStatus'])->name('payments.update-status');
 
     // Export Routes
     Route::get('/payments/export', [PaymentController::class, 'export'])->name('payments.export');
