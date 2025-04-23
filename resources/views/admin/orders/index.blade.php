@@ -1,137 +1,191 @@
 @extends('admin.layouts.app')
 
 @section('content')
-<div class="flex justify-between items-center mb-6">
+<div class="mb-6">
     <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Kelola Pesanan</h1>
+    <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Daftar semua pesanan dari user.</p>
 </div>
 
-<!-- Filter and Search -->
-<form action="{{ route('admin.orders.index') }}" method="GET" class="mb-6 p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
-    <div class="flex flex-col md:flex-row gap-4">
-        <div class="flex-1">
-            <label for="search" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cari Pesanan</label>
-            <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <i class="fas fa-search text-gray-400"></i>
+<!-- Filter & Search -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white">Filter & Pencarian</h3>
+    </div>
+    <div class="p-6">
+        <form action="{{ route('admin.orders.index') }}" method="GET" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Search Field -->
+                <div>
+                    <label for="search" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cari</label>
+                    <input
+                        type="text"
+                        name="search"
+                        id="search"
+                        value="{{ request('search') }}"
+                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        placeholder="Cari berdasarkan ID, nama pembeli, email..."
+                    >
                 </div>
-                <input
-                    type="text"
-                    name="search"
-                    id="search"
-                    value="{{ request('search') }}"
-                    class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:focus:ring-indigo-400 dark:focus:border-indigo-400 dark:text-white sm:text-sm"
-                    placeholder="Cari berdasarkan email, referensi..."
-                >
-            </div>
-        </div>
-        <div>
-            <label for="event_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Acara</label>
-            <select
-                name="event_id"
-                id="event_id"
-                class="block w-full py-2 pl-3 pr-10 mt-1 text-base border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:focus:ring-indigo-400 dark:focus:border-indigo-400 sm:text-sm rounded-md bg-white dark:bg-gray-700 dark:text-white"
-            >
-                <option value="">Semua Acara</option>
-                @foreach($events ?? [] as $event)
-                    <option value="{{ $event->id }}" {{ request('event_id') == $event->id ? 'selected' : '' }}>{{ $event->title }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div>
-            <label for="status" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status Pembayaran</label>
-            <select
-                name="status"
-                id="status"
-                class="block w-full py-2 pl-3 pr-10 mt-1 text-base border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:focus:ring-indigo-400 dark:focus:border-indigo-400 sm:text-sm rounded-md bg-white dark:bg-gray-700 dark:text-white"
-            >
-                <option value="">Semua Status</option>
-                <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Menunggu</option>
-                <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>Selesai</option>
-                <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Dibatalkan</option>
-                <option value="failed" {{ request('status') == 'failed' ? 'selected' : '' }}>Gagal</option>
-                <option value="none" {{ request('status') == 'none' ? 'selected' : '' }}>Belum Bayar</option>
-            </select>
-        </div>
-        <div class="flex items-end">
-            <button type="submit" class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 focus:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                <i class="fas fa-filter mr-2"></i> Filter
-            </button>
-            @if(request('search') || request('event_id') || request('status'))
-                <a href="{{ route('admin.orders.index') }}" class="ml-2 inline-flex items-center px-4 py-2 bg-gray-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                    <i class="fas fa-times mr-2"></i> Reset
-                </a>
-            @endif
-        </div>
-    </div>
 
-    <!-- Results summary -->
-    <div class="mt-4 text-sm text-gray-500 dark:text-gray-400">
-        <p>Menampilkan {{ $orders->count() }} pesanan</p>
+                <!-- Status Filter -->
+                <div>
+                    <label for="status" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status Pembayaran</label>
+                    <select
+                        name="status"
+                        id="status"
+                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    >
+                        <option value="">Semua Status</option>
+                        <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Menunggu Pembayaran</option>
+                        <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>Pembayaran Selesai</option>
+                        <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Dibatalkan</option>
+                        <option value="failed" {{ request('status') == 'failed' ? 'selected' : '' }}>Gagal</option>
+                    </select>
+                </div>
+
+                <!-- Event Filter -->
+                <div>
+                    <label for="event" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Acara</label>
+                    <select
+                        name="event_id"
+                        id="event"
+                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    >
+                        <option value="">Semua Acara</option>
+                        @php
+                            $events = \App\Models\Event::orderBy('title')->get();
+                        @endphp
+
+                        @foreach($events as $event)
+                            <option value="{{ $event->id }}" {{ request('event_id') == $event->id ? 'selected' : '' }}>
+                                {{ $event->title }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Date Range Filter -->
+                <div>
+                    <label for="date_from" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Dari Tanggal</label>
+                    <input
+                        type="date"
+                        name="date_from"
+                        id="date_from"
+                        value="{{ request('date_from') }}"
+                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    >
+                </div>
+
+                <div>
+                    <label for="date_to" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sampai Tanggal</label>
+                    <input
+                        type="date"
+                        name="date_to"
+                        id="date_to"
+                        value="{{ request('date_to') }}"
+                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    >
+                </div>
+
+                <!-- Sort By -->
+                <div>
+                    <label for="sort" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Urutkan Berdasarkan</label>
+                    <select
+                        name="sort"
+                        id="sort"
+                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    >
+                        <option value="latest" {{ request('sort') == 'latest' || !request('sort') ? 'selected' : '' }}>Terbaru</option>
+                        <option value="oldest" {{ request('sort') == 'oldest' ? 'selected' : '' }}>Terlama</option>
+                        <option value="price_high" {{ request('sort') == 'price_high' ? 'selected' : '' }}>Harga Tertinggi</option>
+                        <option value="price_low" {{ request('sort') == 'price_low' ? 'selected' : '' }}>Harga Terendah</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex justify-end">
+                <a href="{{ route('admin.orders.index') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 mr-3">
+                    <i class="fas fa-times mr-2"></i>
+                    Reset
+                </a>
+                <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    <i class="fas fa-search mr-2"></i>
+                    Terapkan Filter
+                </button>
+            </div>
+        </form>
     </div>
-</form>
+</div>
 
 <!-- Orders Table -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white">Daftar Pesanan</h3>
+        <div class="text-sm text-gray-600 dark:text-gray-400">
+            Total: {{ $orders->total() }} pesanan
+        </div>
+    </div>
+
     <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead class="bg-gray-50 dark:bg-gray-700">
                 <tr>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">ID/Referensi</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acara</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tiket</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pembeli</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tanggal</th>
-                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Jumlah</th>
-                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total</th>
-                    <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Aksi</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        ID/Referensi
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Acara
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Pembeli
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Tanggal
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Jumlah Tiket
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Total Harga
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Status
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Aksi
+                    </th>
                 </tr>
             </thead>
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                @forelse($orders as $index => $order)
-                <tr class="{{ $index % 2 == 0 ? '' : 'bg-gray-50 dark:bg-gray-700' }}">
+                @forelse ($orders as $order)
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                        {{ $order->reference ?? '#'.str_pad($order->id, 5, '0', STR_PAD_LEFT) }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {{ $order->ticket->event->title ?? 'N/A' }}
+                    </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="text-sm font-medium text-gray-900 dark:text-white">
-                            {{ $order->reference ?? '#'.str_pad($order->id, 5, '0', STR_PAD_LEFT) }}
+                            {{ $order->user->name ?? $order->guest_name ?? 'N/A' }}
                         </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm text-gray-900 dark:text-white">{{ $order->ticket->event->title }}</div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm text-gray-500 dark:text-gray-400">{{ $order->ticket->name ?? $order->ticket->ticket_class }}</div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm text-gray-900 dark:text-white">
-                            @if($order->uid)
-                                {{ $order->user->name ?? 'User #'.$order->uid }}
-                                <span class="text-xs text-indigo-600 dark:text-indigo-400">(Terdaftar)</span>
-                            @else
-                                {{ $order->guest_name ?? $order->email }}
-                                <span class="text-xs text-gray-500 dark:text-gray-400">(Tamu)</span>
-                            @endif
-                        </div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400">{{ $order->email }}</div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
                         <div class="text-sm text-gray-500 dark:text-gray-400">
-                            @if(is_string($order->order_date))
-                                {{ \Carbon\Carbon::parse($order->order_date)->format('d M Y, H:i') }}
-                            @else
-                                {{ $order->order_date->format('d M Y, H:i') }}
-                            @endif
+                            {{ $order->email }}
                         </div>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right">
-                        <div class="text-sm text-gray-500 dark:text-gray-400">{{ $order->quantity }} tiket</div>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {{ $order->order_date->format('d/m/Y H:i') }}
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right">
-                        <div class="text-sm font-medium text-gray-900 dark:text-white">Rp {{ number_format($order->total_price, 0, ',', '.') }}</div>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {{ $order->quantity }}
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        Rp {{ number_format($order->total_price, 0, ',', '.') }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
                         @php
                             $statusClass = 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
-                            $statusText = 'Belum Bayar';
+                            $statusText = 'Belum Dibayar';
 
                             if(isset($order->payment)) {
                                 if($order->payment->status == 'pending') {
@@ -185,7 +239,7 @@
             </div>
             <div class="ml-4">
                 <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Pesanan</p>
-                <p class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $orders->count() }}</p>
+                <p class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $orders->total() }}</p>
             </div>
         </div>
     </div>
@@ -199,7 +253,7 @@
             <div class="ml-4">
                 <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Pendapatan</p>
                 <p class="text-2xl font-semibold text-gray-900 dark:text-white">
-                    Rp {{ number_format($orders->sum('total_price'), 0, ',', '.') }}
+                    Rp {{ number_format($totalRevenue ?? $orders->sum('total_price'), 0, ',', '.') }}
                 </p>
             </div>
         </div>
@@ -214,12 +268,17 @@
             <div class="ml-4">
                 <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Pesanan Selesai</p>
                 <p class="text-2xl font-semibold text-gray-900 dark:text-white">
-                    {{ $orders->filter(function($order) {
+                    {{ $completedOrders ?? $orders->filter(function($order) {
                         return isset($order->payment) && $order->payment->status == 'completed';
                     })->count() }}
                 </p>
             </div>
         </div>
     </div>
+</div>
+
+<!-- Pagination -->
+<div class="mt-6">
+    {{ $orders->withQueryString()->links() }}
 </div>
 @endsection

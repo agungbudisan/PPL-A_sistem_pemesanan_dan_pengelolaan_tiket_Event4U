@@ -7,10 +7,12 @@ use Illuminate\Routing\Controller;
 use App\Models\Ticket;
 use App\Models\Order;
 use App\Models\User;
+use App\Models\Event;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Barryvdh\DomPDF\Facade\Pdf;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use Carbon\Carbon;
 
 class OrderController extends Controller
 {
@@ -63,7 +65,7 @@ class OrderController extends Controller
             $query->orderBy('created_at', 'desc');
         }
 
-        $orders = $query->paginate(10);
+        $orders = $query->paginate(10)->withQueryString();
 
         return view('orders.index', compact('orders'));
     }
@@ -73,26 +75,81 @@ class OrderController extends Controller
      */
     public function adminIndex(Request $request)
     {
-        $query = Order::with(['ticket.event', 'payment', 'user'])
-            ->orderBy('created_at', 'desc');
+        $query = Order::with(['ticket.event', 'payment', 'user']);
 
-        // Apply filters if needed
+        // Filter berdasarkan search query
         if ($request->has('search') && !empty($request->search)) {
             $search = $request->search;
-            $query->whereHas('ticket.event', function($q) use ($search) {
-                $q->where('title', 'like', "%{$search}%");
+            $query->where(function($q) use ($search) {
+                $q->where('reference', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhereHas('user', function($q2) use ($search) {
+                      $q2->where('name', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('ticket.event', function($q2) use ($search) {
+                      $q2->where('title', 'like', "%{$search}%");
+                  });
             });
         }
 
+        // Filter berdasarkan status pembayaran
         if ($request->has('status') && !empty($request->status)) {
             $query->whereHas('payment', function($q) use ($request) {
                 $q->where('status', $request->status);
             });
         }
 
-        $orders = $query->paginate(15);
+        // Filter berdasarkan event
+        if ($request->has('event_id') && !empty($request->event_id)) {
+            $eventId = $request->event_id;
+            $query->whereHas('ticket', function($q) use ($eventId) {
+                $q->where('event_id', $eventId);
+            });
+        }
 
-        return view('admin.orders.index', compact('orders'));
+        // Filter berdasarkan rentang tanggal
+        if ($request->has('date_from') && !empty($request->date_from)) {
+            $dateFrom = Carbon::parse($request->date_from)->startOfDay();
+            $query->where('order_date', '>=', $dateFrom);
+        }
+
+        if ($request->has('date_to') && !empty($request->date_to)) {
+            $dateTo = Carbon::parse($request->date_to)->endOfDay();
+            $query->where('order_date', '<=', $dateTo);
+        }
+
+        // Pengurutan
+        $sort = $request->input('sort', 'latest');
+        switch ($sort) {
+            case 'oldest':
+                $query->orderBy('order_date', 'asc');
+                break;
+            case 'price_high':
+                $query->orderBy('total_price', 'desc');
+                break;
+            case 'price_low':
+                $query->orderBy('total_price', 'asc');
+                break;
+            default:
+                $query->orderBy('order_date', 'desc');
+                break;
+        }
+
+        $orders = $query->paginate(15)->withQueryString();
+
+        // Hitung total pendapatan dari orders yang sudah completed payment
+        $totalRevenue = Order::whereHas('payment', function($q) {
+            $q->where('status', 'completed');
+        })->sum('total_price');
+
+        $completedOrders = Order::whereHas('payment', function($q) {
+            $q->where('status', 'completed');
+        })->count();
+
+        // Ambil semua event untuk dropdown filter
+        $events = Event::orderBy('title')->get();
+
+        return view('admin.orders.index', compact('orders', 'totalRevenue', 'completedOrders', 'events'));
     }
 
     /**
