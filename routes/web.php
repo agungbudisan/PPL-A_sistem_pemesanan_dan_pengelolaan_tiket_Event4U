@@ -113,8 +113,8 @@ Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
     Route::put('/payments/{payment}/update-status', [PaymentController::class, 'updateStatus'])->name('payments.update-status');
 
     // Export Routes
-    Route::get('/payments/export', [PaymentController::class, 'export'])->name('payments.export');
-    Route::get('/payments/export-pdf', [PaymentController::class, 'exportPdf'])->name('payments.export-pdf');
+    // Route::get('/payments/export', [PaymentController::class, 'export'])->name('payments.export');
+    // Route::get('/payments/export-pdf', [PaymentController::class, 'exportPdf'])->name('payments.export-pdf');
 
     Route::get('/analytics/export-excel/{eventId?}', [DashboardController::class, 'exportExcel'])->name('analytics.exportExcel');
     Route::get('/analytics/export-pdf/{eventId?}', [DashboardController::class, 'exportPdf'])->name('analytics.exportPdf');
