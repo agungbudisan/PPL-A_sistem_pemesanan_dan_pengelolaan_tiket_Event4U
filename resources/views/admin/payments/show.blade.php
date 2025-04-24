@@ -227,7 +227,7 @@
         </h2>
     </div>
     <div class="p-6">
-        <form action="{{ route('admin.payments.update-status', $payment) }}" method="POST">
+        <form id="statusForm" action="{{ route('admin.payments.updateStatus', $payment) }}" method="POST">
             @csrf
             @method('PUT')
 

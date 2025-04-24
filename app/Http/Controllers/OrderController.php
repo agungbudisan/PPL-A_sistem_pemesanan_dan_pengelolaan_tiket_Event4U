@@ -250,7 +250,7 @@ class OrderController extends Controller
         // Store order reference in session for guest users
         session(['guest_order_reference' => $reference]);
 
-        return redirect()->route('guest.payments.create', $reference)
+        return redirect()->route('guest.payments.midtrans', $reference)
             ->with('success', 'Order placed successfully. Proceed to payment.');
     }
 

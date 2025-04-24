@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Routing\Controller;
 use Carbon\Carbon;
 
@@ -125,33 +126,6 @@ class PaymentController extends Controller
         $payment->load(['order.ticket.event', 'order.user']);
         return view('admin.payments.show', compact('payment'));
     }
-
-    // /**
-    //  * Update payment status
-    //  */
-    // public function updateStatus(Request $request, Payment $payment)
-    // {
-    //     $request->validate([
-    //         'status' => 'required|in:pending,completed,failed,cancelled'
-    //     ]);
-
-    //     $payment->status = $request->status;
-    //     $payment->updated_at = now();
-    //     $payment->save();
-
-    //     // Jika pembayaran disetujui (completed), update stok tiket
-    //     if ($request->status === 'completed') {
-    //         $order = $payment->order;
-    //         $ticket = $order->ticket;
-
-    //         // Kurangi stok tiket
-    //         $ticket->quota_avail -= $order->quantity;
-    //         $ticket->save();
-    //     }
-
-    //     return redirect()->route('admin.payments.show', $payment)
-    //         ->with('success', 'Status pembayaran berhasil diperbarui.');
-    // }
 
     /**
      * Display the payment form for authenticated users
@@ -428,7 +402,7 @@ class PaymentController extends Controller
                     ],
                 ],
                 'callbacks' => [
-                    'finish' => route('guest.payments.midtrans.finish', $reference),
+                    'finish' => route('guest.orders.confirmation', $reference),
                 ],
             ];
 
@@ -615,33 +589,59 @@ class PaymentController extends Controller
         $oldStatus = $payment->status;
         $newStatus = $request->status;
 
+        // Log perubahan status yang akan dilakukan
+        Log::info("Attempting to change payment status from {$oldStatus} to {$newStatus} for payment ID: {$payment->id}");
+
         // Hanya update jika status berubah
         if ($oldStatus !== $newStatus) {
-            $payment->status = $newStatus;
-            $payment->save();
+            try {
+                DB::beginTransaction();
 
-            // Jika status diubah dari selain completed menjadi completed
-            if ($oldStatus !== 'completed' && $newStatus === 'completed') {
-                // Load order dengan relasi yang diperlukan
-                $order = $payment->order->load(['ticket.event', 'user']);
+                $payment->status = $newStatus;
+                $payment->save();
 
-                // Kurangi kuota tiket
-                $order->ticket->decrement('quota_avail', $order->quantity);
-                Log::info('Ticket quota decreased by ' . $order->quantity . ' for ticket ID: ' . $order->ticket->id);
+                // Jika status diubah dari selain completed menjadi completed
+                if ($oldStatus !== 'completed' && $newStatus === 'completed') {
+                    // Load order dengan relasi yang diperlukan
+                    $order = $payment->order->load(['ticket.event', 'user']);
 
-                // Kirim e-ticket
-                try {
-                    $isGuest = $order->user_id === null; // Tentukan apakah user adalah guest
-                    Mail::to($order->email)->send(new SendETicket($order, $isGuest));
-                    Log::info('E-ticket sent to ' . ($isGuest ? 'guest' : 'user') . ': ' . $order->email);
-                } catch (\Exception $e) {
-                    Log::error('Gagal mengirim e-ticket: ' . $e->getMessage());
+                    // Validasi ketersediaan tiket sebelum mengurangi kuota
+                    if ($order->ticket->quota_avail < $order->quantity) {
+                        throw new \Exception("Kuota tiket tidak mencukupi. Tersedia: {$order->ticket->quota_avail}, Dibutuhkan: {$order->quantity}");
+                    }
+
+                    // Kurangi kuota tiket
+                    $order->ticket->decrement('quota_avail', $order->quantity);
+                    Log::info("Ticket quota decreased by {$order->quantity} for ticket ID: {$order->ticket->id}. New quota: {$order->ticket->quota_avail}");
+
+                    // Kirim e-ticket
+                    try {
+                        $isGuest = $order->user_id === null;
+                        Mail::to($order->email)->send(new SendETicket($order, $isGuest));
+                        Log::info("E-ticket sent to " . ($isGuest ? 'guest' : 'user') . ": {$order->email}");
+                    } catch (\Exception $e) {
+                        Log::error("Gagal mengirim e-ticket: " . $e->getMessage());
+                        // Tidak perlu throw exception karena pengiriman email bukan operasi kritis
+                    }
                 }
+
+                DB::commit();
+
+                return redirect()->route('admin.payments.index')
+                    ->with('success', 'Status pembayaran berhasil diperbarui.');
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error("Error updating payment status: " . $e->getMessage());
+
+                return redirect()->back()
+                    ->with('error', 'Gagal memperbarui status pembayaran: ' . $e->getMessage());
             }
         }
 
+        // Jika status tidak berubah
         return redirect()->route('admin.payments.index')
-            ->with('success', 'Status pembayaran berhasil diperbarui.');
+            ->with('info', 'Status pembayaran tidak berubah.');
     }
 
     /**
