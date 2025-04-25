@@ -2,65 +2,133 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Routing\Controller;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
-use App\Mail\SendETicket;
-use App\Models\Order;
 use App\Models\Payment;
+use App\Models\Order;
+use App\Models\Event;
+use App\Mail\SendETicket;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Routing\Controller;
+use Carbon\Carbon;
 
 class PaymentController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth')->only(['create', 'store', 'show', 'processMidtransPayment', 'finishMidtransPayment']);
-        $this->middleware('admin')->only(['adminIndex', 'updateStatus']);
+        $this->middleware('auth')->only(['create', 'store', 'index', 'show', 'processMidtransPayment', 'finishMidtransPayment']);
+        $this->middleware('admin')->only(['adminIndex', 'adminShow', 'updateStatus']);
     }
 
     /**
-     * Display a listing of payments for admin
+     * Display a listing of all payments for admin
      */
     public function adminIndex(Request $request)
     {
-        $query = Payment::with(['order.ticket.event', 'order.user'])
-            ->orderBy('payment_date', 'desc');
+        $query = Payment::with(['order.ticket.event', 'order.user']);
 
-        // Apply filters if needed
-        if ($request->has('search') && !empty($request->search)) {
+        // Filter berdasarkan search query
+        if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
-                $q->where('method', 'like', "%{$search}%")
-                ->orWhere('transaction_id', 'like', "%{$search}%")
-                ->orWhereHas('order', function($subq) use ($search) {
-                    $subq->where('email', 'like', "%{$search}%");
-                });
+                $q->where('id', 'like', "%{$search}%")
+                  ->orWhereHas('order', function($q2) use ($search) {
+                      $q2->where('reference', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('order.user', function($q2) use ($search) {
+                      $q2->where('name', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('order.ticket.event', function($q2) use ($search) {
+                      $q2->where('title', 'like', "%{$search}%");
+                  });
             });
         }
 
-        if ($request->has('status') && !empty($request->status)) {
+        // Filter berdasarkan status pembayaran
+        if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        if ($request->has('event_id') && !empty($request->event_id)) {
-            $query->whereHas('order.ticket', function($q) use ($request) {
-                $q->where('event_id', $request->event_id);
+        // Filter berdasarkan metode pembayaran
+        if ($request->filled('method')) {
+            $query->where('method', $request->method);
+        }
+
+        // Filter berdasarkan event
+        if ($request->filled('event_id')) {
+            $eventId = $request->event_id;
+            $query->whereHas('order.ticket', function($q) use ($eventId) {
+                $q->where('event_id', $eventId);
             });
         }
 
-        // Paginate the results (15 per page, adjust as needed)
-        $payments = $query->paginate(15);
+        // Filter berdasarkan rentang tanggal
+        if ($request->filled('date_from')) {
+            $dateFrom = Carbon::parse($request->date_from)->startOfDay();
+            $query->whereDate('created_at', '>=', $dateFrom);
+        }
 
-        // Get all events for filter dropdown
-        $events = \App\Models\Event::orderBy('title')->get();
+        if ($request->filled('date_to')) {
+            $dateTo = Carbon::parse($request->date_to)->endOfDay();
+            $query->whereDate('created_at', '<=', $dateTo);
+        }
 
-        return view('admin.payments.index', compact('payments', 'events'));
+        // Pengurutan
+        $sort = $request->input('sort', 'latest');
+        switch ($sort) {
+            case 'oldest':
+                $query->orderBy('created_at', 'asc');
+                break;
+            case 'amount_high':
+                $query->orderByDesc(function($query) {
+                    $query->select('total_price')
+                        ->from('orders')
+                        ->whereColumn('orders.id', 'payments.order_id');
+                });
+                break;
+            case 'amount_low':
+                $query->orderBy(function($query) {
+                    $query->select('total_price')
+                        ->from('orders')
+                        ->whereColumn('orders.id', 'payments.order_id');
+                });
+                break;
+            default:
+                $query->orderBy('created_at', 'desc');
+                break;
+        }
+
+        $payments = $query->paginate(15)->withQueryString();
+
+        // Get data untuk dropdown filter
+        $events = Event::orderBy('title')->get();
+
+        // Statistik pembayaran
+        $totalCompleted = Payment::where('status', 'completed')->count();
+        $totalPending = Payment::where('status', 'pending')->count();
+        $totalRevenue = Order::whereHas('payment', function($q) {
+            $q->where('status', 'completed');
+        })->sum('total_price');
+
+        return view('admin.payments.index', compact('payments', 'events', 'totalCompleted', 'totalPending', 'totalRevenue'));
     }
 
     /**
-     * Show the form for creating a new payment for authenticated user
+     * Display a specified payment for admin
+     */
+    public function adminShow(Payment $payment)
+    {
+        $payment->load(['order.ticket.event', 'order.user']);
+        return view('admin.payments.show', compact('payment'));
+    }
+
+    /**
+     * Display the payment form for authenticated users
      */
     public function create(Order $order)
     {
@@ -79,10 +147,10 @@ class PaymentController extends Controller
                 ->with('error', 'Batas waktu pembayaran telah habis. Silakan buat pesanan baru.');
         }
 
-        // Check if payment already exists
-        if ($order->payment) {
+        // Check if payment already exists and is completed
+        if ($order->payment && $order->payment->status === 'completed') {
             return redirect()->route('orders.show', $order)
-                ->with('info', 'Pembayaran untuk pesanan ini sudah dilakukan sebelumnya.');
+                ->with('info', 'Pembayaran untuk pesanan ini sudah selesai.');
         }
 
         // Langsung arahkan ke pembayaran Midtrans
@@ -90,7 +158,7 @@ class PaymentController extends Controller
     }
 
     /**
-     * Store a newly created payment for authenticated user
+     * Store a payment for authenticated users
      */
     public function store(Request $request, Order $order)
     {
@@ -116,11 +184,12 @@ class PaymentController extends Controller
         }
 
         // Langsung arahkan ke pembayaran Midtrans
-        return redirect()->route('payments.midtrans', $order);
+        // return redirect()->route('payments.midtrans', $order);
+        return $this->processMidtransPayment($order);
     }
 
     /**
-     * Show the form for creating a new payment for guest user
+     * Display the payment form for guest users
      */
     public function guestCreate($reference)
     {
@@ -128,17 +197,27 @@ class PaymentController extends Controller
             ->with('ticket.event')
             ->firstOrFail();
 
-        // Check if the reference matches the one in session
-        if (!session('guest_order_reference') || session('guest_order_reference') !== $reference) {
-            abort(403, 'Unauthorized action.');
+        // Cek apakah order sudah memiliki payment yang completed
+        if ($order->payment && $order->payment->status === 'completed') {
+            return redirect()->route('guest.orders.confirmation', $reference)
+                ->with('info', 'Pembayaran untuk pesanan ini sudah selesai.');
         }
 
-        // Langsung arahkan ke pembayaran Midtrans
-        return redirect()->route('guest.payments.midtrans', $reference);
+        // Cek apakah order sudah melewati batas waktu pembayaran (1 jam)
+        $orderTime = $order->order_date;
+        $now = now();
+        $diffInHours = $now->diffInHours($orderTime);
+
+        if ($diffInHours >= 1) {
+            return redirect()->route('welcome')
+                ->with('error', 'Batas waktu pembayaran telah berakhir.');
+        }
+
+        return view('guest.payments.midtrans', compact('order'));
     }
 
     /**
-     * Store a newly created payment for guest user
+     * Store a payment for guest users
      */
     public function guestStore(Request $request, $reference)
     {
@@ -157,6 +236,21 @@ class PaymentController extends Controller
 
         // Langsung arahkan ke pembayaran Midtrans
         return redirect()->route('guest.payments.midtrans', $reference);
+    }
+
+    /**
+     * Display user's payments
+     */
+    public function index()
+    {
+        $payments = Payment::whereHas('order', function($q) {
+                $q->where('user_id', Auth::id());
+            })
+            ->with(['order.ticket.event'])
+            ->latest()
+            ->paginate(10);
+
+        return view('payments.index', compact('payments'));
     }
 
     /**
@@ -179,68 +273,83 @@ class PaymentController extends Controller
                 ->with('error', 'Batas waktu pembayaran telah habis. Silakan buat pesanan baru.');
         }
 
-        // Check if payment already exists
-        if ($order->payment) {
+        // Check if payment already exists and is completed
+        if ($order->payment && $order->payment->status === 'completed') {
             return redirect()->route('orders.show', $order)
-                ->with('info', 'Pembayaran untuk pesanan ini sudah dilakukan sebelumnya.');
+                ->with('info', 'Pembayaran untuk pesanan ini sudah selesai.');
         }
 
-        try {
-            // Setting Midtrans configuration
-            \Midtrans\Config::$serverKey = config('midtrans.server_key');
-            \Midtrans\Config::$isProduction = config('midtrans.is_production');
-            \Midtrans\Config::$isSanitized = config('midtrans.is_sanitized');
-            \Midtrans\Config::$is3ds = config('midtrans.is_3ds');
+        // Jika payment sudah ada tapi belum completed, gunakan payment yang ada
+        // Ini mencegah duplikasi record pembayaran untuk pesanan yang sama
+        $payment = $order->payment;
+        $isExistingPayment = false;
 
-            // Buat ID transaksi unik
-            $transactionId = 'ORDER-' . $order->id . '-' . Str::random(8);
+        if ($payment && $payment->status === 'pending' && $payment->snap_token) {
+            $isExistingPayment = true;
+            Log::info('Using existing payment record with snap token: ' . $payment->snap_token);
+        } else {
+            try {
+                // Setting Midtrans configuration
+                \Midtrans\Config::$serverKey = config('midtrans.server_key');
+                \Midtrans\Config::$isProduction = config('midtrans.is_production');
+                \Midtrans\Config::$isSanitized = config('midtrans.is_sanitized');
+                \Midtrans\Config::$is3ds = config('midtrans.is_3ds');
 
-            // Set parameter untuk Midtrans
-            $params = [
-                'transaction_details' => [
-                    'order_id' => $transactionId,
-                    'gross_amount' => (int) $order->total_price,
-                ],
-                'customer_details' => [
-                    'first_name' => $order->user->name,
-                    'email' => $order->email,
-                ],
-                'item_details' => [
-                    [
-                        'id' => $order->ticket->id,
-                        'price' => (int) $order->ticket->price,
-                        'quantity' => $order->quantity,
-                        'name' => $order->ticket->event->title . ' - ' . $order->ticket->ticket_class,
+                // Buat ID transaksi unik
+                $transactionId = 'ORDER-' . $order->id . '-' . Str::random(8);
+
+                // Set parameter untuk Midtrans
+                $params = [
+                    'transaction_details' => [
+                        'order_id' => $transactionId,
+                        'gross_amount' => (int) $order->total_price,
                     ],
-                ],
-                'callbacks' => [
-                    'finish' => route('payments.midtrans.finish', $order->id),
-                ],
-            ];
+                    'customer_details' => [
+                        'first_name' => $order->user->name,
+                        'email' => $order->email,
+                    ],
+                    'item_details' => [
+                        [
+                            'id' => $order->ticket->id,
+                            'price' => (int) $order->ticket->price,
+                            'quantity' => $order->quantity,
+                            'name' => $order->ticket->event->title . ' - ' . $order->ticket->ticket_class,
+                        ],
+                    ],
+                    'callbacks' => [
+                        'finish' => route('payments.midtrans.finish', $order->id),
+                    ],
+                ];
 
-            // Dapatkan Snap Token
-            $snapToken = \Midtrans\Snap::getSnapToken($params);
+                // Dapatkan Snap Token
+                $snapToken = \Midtrans\Snap::getSnapToken($params);
 
-            // Buat payment record
-            $payment = Payment::create([
-                'method' => 'midtrans',
-                'status' => 'pending',
-                'transaction_id' => $transactionId,
-                'snap_token' => $snapToken,
-                'payment_date' => now(),
-                'order_id' => $order->id,
-            ]);
+                // Buat atau update payment record
+                if (!$payment) {
+                    $payment = new Payment();
+                    $payment->order_id = $order->id;
+                }
 
-            // Return view dengan snap token
-            return view('payments.midtrans', [
-                'order' => $order,
-                'snap_token' => $snapToken
-            ]);
+                $payment->method = 'midtrans';
+                $payment->status = 'pending';
+                $payment->transaction_id = $transactionId;
+                $payment->snap_token = $snapToken;
+                $payment->payment_date = now();
+                $payment->save();
 
-        } catch (\Exception $e) {
-            Log::error('Midtrans Error: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+                Log::info('New payment record created with snap token: ' . $snapToken);
+
+            } catch (\Exception $e) {
+                Log::error('Midtrans Error: ' . $e->getMessage());
+                return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+            }
         }
+
+        // Return view dengan snap token
+        return view('payments.midtrans', [
+            'order' => $order,
+            'snap_token' => $payment->snap_token
+        ]);
     }
 
     /**
@@ -293,7 +402,7 @@ class PaymentController extends Controller
                     ],
                 ],
                 'callbacks' => [
-                    'finish' => route('guest.payments.midtrans.finish', $reference),
+                    'finish' => route('guest.orders.confirmation', $reference),
                 ],
             ];
 
@@ -333,6 +442,9 @@ class PaymentController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
+        // Log semua data yang diterima dari Midtrans untuk debugging
+        Log::info('Midtrans finish callback data (Member): ' . json_encode($request->all()));
+
         // Cek apakah ada data transaksi dari Midtrans
         if ($request->has('transaction_status') && $request->has('order_id')) {
             // Cari payment berdasarkan transaction_id
@@ -362,13 +474,23 @@ class PaymentController extends Controller
                     return redirect()->route('orders.show', $order)
                         ->with('success', 'Pembayaran berhasil! E-ticket telah dikirim ke email Anda.');
                 } else if ($transactionStatus == 'pending') {
+                    $payment->status = 'pending';
+                    $payment->save();
+
                     return redirect()->route('orders.show', $order)
                         ->with('info', 'Pembayaran sedang dalam proses. Kami akan mengirim e-ticket setelah pembayaran dikonfirmasi.');
                 } else {
+                    $payment->status = 'failed';
+                    $payment->save();
+
                     return redirect()->route('orders.show', $order)
                         ->with('error', 'Pembayaran gagal atau dibatalkan.');
                 }
+            } else {
+                Log::error('Payment record not found for transaction_id: ' . $request->order_id);
             }
+        } else {
+            Log::warning('Missing transaction data in Midtrans finish callback');
         }
 
         return redirect()->route('orders.show', $order)
@@ -381,6 +503,9 @@ class PaymentController extends Controller
     public function finishMidtransPaymentGuest($reference, Request $request)
     {
         $order = Order::where('reference', $reference)->firstOrFail();
+
+        // Log semua data yang diterima dari Midtrans untuk debugging
+        Log::info('Midtrans finish callback data (Guest): ' . json_encode($request->all()));
 
         // Cek apakah ada data transaksi dari Midtrans
         if ($request->has('transaction_status') && $request->has('order_id')) {
@@ -414,13 +539,23 @@ class PaymentController extends Controller
                     return redirect()->route('guest.orders.confirmation', $reference)
                         ->with('success', 'Pembayaran berhasil! E-ticket telah dikirim ke email Anda.');
                 } else if ($transactionStatus == 'pending') {
+                    $payment->status = 'pending';
+                    $payment->save();
+
                     return redirect()->route('guest.orders.confirmation', $reference)
                         ->with('info', 'Pembayaran sedang dalam proses. Kami akan mengirim e-ticket setelah pembayaran dikonfirmasi.');
                 } else {
+                    $payment->status = 'failed';
+                    $payment->save();
+
                     return redirect()->route('guest.orders.confirmation', $reference)
                         ->with('error', 'Pembayaran gagal atau dibatalkan.');
                 }
+            } else {
+                Log::error('Payment record not found for transaction_id: ' . $request->order_id);
             }
+        } else {
+            Log::warning('Missing transaction data in Midtrans finish callback');
         }
 
         return redirect()->route('guest.orders.confirmation', $reference)
@@ -428,14 +563,16 @@ class PaymentController extends Controller
     }
 
     /**
-     * Display the specified payment
+     * Display a specified payment for authenticated user
      */
     public function show(Payment $payment)
     {
-        // Check if payment belongs to authenticated user
+        // Cek apakah payment terkait dengan order milik user yang login
         if ($payment->order->user_id !== Auth::id()) {
             abort(403, 'Unauthorized action.');
         }
+
+        $payment->load(['order.ticket.event']);
 
         return view('payments.show', compact('payment'));
     }
@@ -452,33 +589,59 @@ class PaymentController extends Controller
         $oldStatus = $payment->status;
         $newStatus = $request->status;
 
+        // Log perubahan status yang akan dilakukan
+        Log::info("Attempting to change payment status from {$oldStatus} to {$newStatus} for payment ID: {$payment->id}");
+
         // Hanya update jika status berubah
         if ($oldStatus !== $newStatus) {
-            $payment->status = $newStatus;
-            $payment->save();
+            try {
+                DB::beginTransaction();
 
-            // Jika status diubah dari selain completed menjadi completed
-            if ($oldStatus !== 'completed' && $newStatus === 'completed') {
-                // Load order dengan relasi yang diperlukan
-                $order = $payment->order->load(['ticket.event', 'user']);
+                $payment->status = $newStatus;
+                $payment->save();
 
-                // Kurangi kuota tiket
-                $order->ticket->decrement('quota_avail', $order->quantity);
-                Log::info('Ticket quota decreased by ' . $order->quantity . ' for ticket ID: ' . $order->ticket->id);
+                // Jika status diubah dari selain completed menjadi completed
+                if ($oldStatus !== 'completed' && $newStatus === 'completed') {
+                    // Load order dengan relasi yang diperlukan
+                    $order = $payment->order->load(['ticket.event', 'user']);
 
-                // Kirim e-ticket
-                try {
-                    $isGuest = $order->user_id === null; // Tentukan apakah user adalah guest
-                    Mail::to($order->email)->send(new SendETicket($order, $isGuest));
-                    Log::info('E-ticket sent to ' . ($isGuest ? 'guest' : 'user') . ': ' . $order->email);
-                } catch (\Exception $e) {
-                    Log::error('Gagal mengirim e-ticket: ' . $e->getMessage());
+                    // Validasi ketersediaan tiket sebelum mengurangi kuota
+                    if ($order->ticket->quota_avail < $order->quantity) {
+                        throw new \Exception("Kuota tiket tidak mencukupi. Tersedia: {$order->ticket->quota_avail}, Dibutuhkan: {$order->quantity}");
+                    }
+
+                    // Kurangi kuota tiket
+                    $order->ticket->decrement('quota_avail', $order->quantity);
+                    Log::info("Ticket quota decreased by {$order->quantity} for ticket ID: {$order->ticket->id}. New quota: {$order->ticket->quota_avail}");
+
+                    // Kirim e-ticket
+                    try {
+                        $isGuest = $order->user_id === null;
+                        Mail::to($order->email)->send(new SendETicket($order, $isGuest));
+                        Log::info("E-ticket sent to " . ($isGuest ? 'guest' : 'user') . ": {$order->email}");
+                    } catch (\Exception $e) {
+                        Log::error("Gagal mengirim e-ticket: " . $e->getMessage());
+                        // Tidak perlu throw exception karena pengiriman email bukan operasi kritis
+                    }
                 }
+
+                DB::commit();
+
+                return redirect()->route('admin.payments.index')
+                    ->with('success', 'Status pembayaran berhasil diperbarui.');
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error("Error updating payment status: " . $e->getMessage());
+
+                return redirect()->back()
+                    ->with('error', 'Gagal memperbarui status pembayaran: ' . $e->getMessage());
             }
         }
 
+        // Jika status tidak berubah
         return redirect()->route('admin.payments.index')
-            ->with('success', 'Status pembayaran berhasil diperbarui.');
+            ->with('info', 'Status pembayaran tidak berubah.');
     }
 
     /**

@@ -66,7 +66,7 @@
             <div class="flex items-center">
                 <div class="flex-shrink-0 bg-yellow-500 rounded-full p-3">
                     @if(isset($event->category) && isset($event->category->icon))
-                        <img src="{{ $event->category->icon }}" alt="{{ $event->category->name }}" class="h-6 w-6 object-cover">
+                        <img src="{{ asset('storage/' . $event->category->icon) }}" alt="{{ $event->category->name }}" class="h-6 w-6 object-cover">
                     @else
                         <i class="fas fa-tag text-white"></i>
                     @endif
