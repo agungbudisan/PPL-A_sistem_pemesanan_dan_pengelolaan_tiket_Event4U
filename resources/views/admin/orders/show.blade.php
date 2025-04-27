@@ -95,6 +95,8 @@
                     <div class="mt-6">
                         <form action="{{ route('admin.payments.updateStatus', $order->payment) }}" method="POST">
                             @csrf
+                            @method('PUT')
+                            
                             <label for="status" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Ubah Status Pembayaran</label>
                             <div class="flex space-x-2">
                                 <select name="status" id="status" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:focus:ring-indigo-400 dark:focus:border-indigo-400 sm:text-sm">
