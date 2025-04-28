@@ -11,7 +11,7 @@
     <!-- Total Payments -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
         <div class="flex items-center">
-            <div class="flex-shrink-0 bg-indigo-500 rounded-full p-3">
+            <div class="w-12 h-12 bg-indigo-500 rounded-full flex items-center justify-center">
                 <i class="fas fa-money-check-alt text-white"></i>
             </div>
             <div class="ml-4">
@@ -24,7 +24,7 @@
     <!-- Completed Payments -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
         <div class="flex items-center">
-            <div class="flex-shrink-0 bg-green-500 rounded-full p-3">
+            <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
                 <i class="fas fa-check-circle text-white"></i>
             </div>
             <div class="ml-4">
@@ -37,7 +37,7 @@
     <!-- Pending Payments -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
         <div class="flex items-center">
-            <div class="flex-shrink-0 bg-yellow-500 rounded-full p-3">
+            <div class="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center">
                 <i class="fas fa-clock text-white"></i>
             </div>
             <div class="ml-4">

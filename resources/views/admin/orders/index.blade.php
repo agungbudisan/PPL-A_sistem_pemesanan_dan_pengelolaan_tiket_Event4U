@@ -234,7 +234,7 @@
     <!-- Total Orders -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
         <div class="flex items-center">
-            <div class="flex-shrink-0 bg-indigo-500 rounded-full p-3">
+            <div class="w-12 h-12 bg-indigo-500 rounded-full flex items-center justify-center">
                 <i class="fas fa-shopping-cart text-white"></i>
             </div>
             <div class="ml-4">
@@ -247,7 +247,7 @@
     <!-- Total Revenue -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
         <div class="flex items-center">
-            <div class="flex-shrink-0 bg-green-500 rounded-full p-3">
+            <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
                 <i class="fas fa-money-bill-wave text-white"></i>
             </div>
             <div class="ml-4">
@@ -262,7 +262,7 @@
     <!-- Completed Orders -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
         <div class="flex items-center">
-            <div class="flex-shrink-0 bg-blue-500 rounded-full p-3">
+            <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
                 <i class="fas fa-check-circle text-white"></i>
             </div>
             <div class="ml-4">

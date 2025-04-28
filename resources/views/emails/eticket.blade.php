@@ -170,7 +170,7 @@
             <li>Simpan e-ticket ini dan tunjukkan saat registrasi di tempat acara.</li>
             <li>Anda dapat mencetak e-ticket ini atau menunjukkan versi digitalnya dari perangkat mobile Anda.</li>
             <li>Harap datang 30 menit sebelum acara dimulai untuk proses registrasi.</li>
-            <li>Jika Anda memiliki pertanyaan, silakan hubungi kami di support@example.com</li>
+            <li>Jika Anda memiliki pertanyaan, silakan hubungi kami di support@event4u.com</li>
         </ol>
     </div>
 

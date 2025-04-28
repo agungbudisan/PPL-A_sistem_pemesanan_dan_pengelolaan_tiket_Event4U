@@ -6,7 +6,7 @@
     <!-- Total Events Card -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
         <div class="flex items-center">
-            <div class="flex-shrink-0 bg-indigo-500 rounded-full p-3">
+            <div class="w-12 h-12 bg-indigo-500 rounded-full flex items-center justify-center">
                 <i class="fas fa-calendar-alt text-white"></i>
             </div>
             <div class="ml-4">
@@ -19,7 +19,7 @@
     <!-- Upcoming Events Card -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
         <div class="flex items-center">
-            <div class="flex-shrink-0 bg-green-500 rounded-full p-3">
+            <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
                 <i class="fas fa-hourglass-half text-white"></i>
             </div>
             <div class="ml-4">
@@ -32,7 +32,7 @@
     <!-- Categories Card -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
         <div class="flex items-center">
-            <div class="flex-shrink-0 bg-yellow-500 rounded-full p-3">
+            <div class="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center">
                 <i class="fas fa-tags text-white"></i>
             </div>
             <div class="ml-4">
@@ -45,7 +45,7 @@
     <!-- Active Tickets Card -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
         <div class="flex items-center">
-            <div class="flex-shrink-0 bg-red-500 rounded-full p-3">
+            <div class="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center">
                 <i class="fas fa-ticket-alt text-white"></i>
             </div>
             <div class="ml-4">
