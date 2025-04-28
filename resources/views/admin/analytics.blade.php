@@ -38,7 +38,7 @@
         <!-- Total Sales -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
             <div class="flex items-center">
-                <div class="flex-shrink-0 bg-green-500 rounded-full p-3">
+                <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
                     <i class="fas fa-money-bill-wave text-white"></i>
                 </div>
                 <div class="ml-4">
@@ -51,7 +51,7 @@
         <!-- Tickets Sold -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
             <div class="flex items-center">
-                <div class="flex-shrink-0 bg-blue-500 rounded-full p-3">
+                <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
                     <i class="fas fa-ticket-alt text-white"></i>
                 </div>
                 <div class="ml-4">
@@ -64,7 +64,7 @@
         <!-- Event Category -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
             <div class="flex items-center">
-                <div class="flex-shrink-0 bg-yellow-500 rounded-full p-3">
+                <div class="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center">
                     @if(isset($event->category) && isset($event->category->icon))
                         <img src="{{ asset('storage/' . $event->category->icon) }}" alt="{{ $event->category->name }}" class="h-6 w-6 object-cover">
                     @else
@@ -81,7 +81,7 @@
         <!-- Event Date -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
             <div class="flex items-center">
-                <div class="flex-shrink-0 bg-indigo-500 rounded-full p-3">
+                <div class="w-12 h-12 bg-indigo-500 rounded-full flex items-center justify-center">
                     <i class="fas fa-calendar-alt text-white"></i>
                 </div>
                 <div class="ml-4">
