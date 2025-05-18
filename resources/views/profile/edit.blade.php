@@ -1,55 +1,41 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Profile') }}
-        </h2>
-    </x-slot>
+<x-dashboard-layout>
+    @section('page-title', 'Profil Saya')
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            <!-- Profile Summary Card -->
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="flex flex-col md:flex-row md:items-center">
-                    <div class="flex-shrink-0 mb-4 md:mb-0 md:mr-6">
-                        <div class="h-32 w-32 rounded-full overflow-hidden bg-gray-100 border-2 border-[#7B0015]">
+    <div class="space-y-4 sm:space-y-6">
+        <!-- Profile Info Card -->
+        <div class="bg-white shadow rounded-lg overflow-hidden">
+            <div class="p-4 sm:p-6">
+                <div class="flex flex-col sm:flex-row sm:items-center">
+                    <div class="flex-shrink-0 mb-4 sm:mb-0 sm:mr-6 flex justify-center">
+                        <div class="h-24 w-24 sm:h-32 sm:w-32 rounded-full overflow-hidden bg-gray-100 border-2 border-[#7B0015]">
                             <img src="https://ui-avatars.com/api/?name={{ urlencode($user->name) }}&color=FFFFFF&background=7B0015"
-                                 alt="{{ $user->name }}" class="h-full w-full object-cover">
+                                alt="{{ $user->name }}" class="h-full w-full object-cover">
                         </div>
                     </div>
-                    <div>
-                        <h2 class="text-2xl font-bold text-gray-800">{{ $user->name }}</h2>
+                    <div class="text-center sm:text-left">
+                        <h2 class="text-xl sm:text-2xl font-bold text-gray-800">{{ $user->name }}</h2>
                         <p class="text-gray-600">{{ $user->email }}</p>
-                        <div class="mt-2">
+                        <div class="mt-2 flex flex-wrap justify-center sm:justify-start gap-2">
                             <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-[#7B0015] text-white">
                                 {{ ucfirst($user->role) }}
                             </span>
-                            <span class="inline-flex items-center px-3 py-1 ml-2 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                                 Member sejak {{ $user->created_at->format('M Y') }}
                             </span>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    @include('profile.partials.update-profile-information-form')
-                </div>
+        <!-- Ringkasan Aktivitas -->
+        <div class="bg-white shadow rounded-lg overflow-hidden">
+            <div class="border-b border-gray-200 px-4 sm:px-6 py-4">
+                <h3 class="text-base sm:text-lg font-medium text-gray-900">Ringkasan Aktivitas</h3>
             </div>
-
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    @include('profile.partials.update-password-form')
-                </div>
-            </div>
-
-            <!-- Activity Summary -->
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <h2 class="text-lg font-medium text-gray-900 mb-4">
-                    {{ __('Ringkasan Aktivitas') }}
-                </h2>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="p-4 sm:p-6">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <!-- Total Pemesanan -->
                     <div class="bg-gray-50 p-4 rounded-lg">
                         <div class="flex items-center justify-between">
                             <div>
@@ -57,7 +43,7 @@
                                 @php
                                     $totalOrders = \App\Models\Order::where('user_id', $user->id)->count();
                                 @endphp
-                                <p class="text-xl font-semibold">{{ $totalOrders }}</p>
+                                <p class="text-lg sm:text-xl font-semibold">{{ $totalOrders }}</p>
                             </div>
                             <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
                                 <i class="fas fa-shopping-cart text-blue-500"></i>
@@ -65,6 +51,7 @@
                         </div>
                     </div>
 
+                    <!-- Acara Dihadiri -->
                     <div class="bg-gray-50 p-4 rounded-lg">
                         <div class="flex items-center justify-between">
                             <div>
@@ -79,7 +66,7 @@
                                         })
                                         ->count();
                                 @endphp
-                                <p class="text-xl font-semibold">{{ $attendedEvents }}</p>
+                                <p class="text-lg sm:text-xl font-semibold">{{ $attendedEvents }}</p>
                             </div>
                             <div class="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
                                 <i class="fas fa-check-circle text-green-500"></i>
@@ -87,6 +74,7 @@
                         </div>
                     </div>
 
+                    <!-- Acara Mendatang -->
                     <div class="bg-gray-50 p-4 rounded-lg">
                         <div class="flex items-center justify-between">
                             <div>
@@ -101,7 +89,7 @@
                                         })
                                         ->count();
                                 @endphp
-                                <p class="text-xl font-semibold">{{ $upcomingEvents }}</p>
+                                <p class="text-lg sm:text-xl font-semibold">{{ $upcomingEvents }}</p>
                             </div>
                             <div class="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
                                 <i class="fas fa-calendar text-purple-500"></i>
@@ -110,12 +98,36 @@
                     </div>
                 </div>
             </div>
+        </div>
 
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    @include('profile.partials.delete-user-form')
-                </div>
+        <!-- Informasi Akun -->
+        <div class="bg-white shadow rounded-lg overflow-hidden">
+            <div class="border-b border-gray-200 px-4 sm:px-6 py-4">
+                <h3 class="text-base sm:text-lg font-medium text-gray-900">Informasi Akun</h3>
+            </div>
+            <div class="p-4 sm:p-6">
+                @include('profile.partials.update-profile-information-form')
+            </div>
+        </div>
+
+        <!-- Update Password -->
+        <div class="bg-white shadow rounded-lg overflow-hidden">
+            <div class="border-b border-gray-200 px-4 sm:px-6 py-4">
+                <h3 class="text-base sm:text-lg font-medium text-gray-900">Ubah Password</h3>
+            </div>
+            <div class="p-4 sm:p-6">
+                @include('profile.partials.update-password-form')
+            </div>
+        </div>
+
+        <!-- Hapus Akun -->
+        <div class="bg-white shadow rounded-lg overflow-hidden">
+            <div class="border-b border-gray-200 px-4 sm:px-6 py-4">
+                <h3 class="text-base sm:text-lg font-medium text-red-600">Hapus Akun</h3>
+            </div>
+            <div class="p-4 sm:p-6">
+                @include('profile.partials.delete-user-form')
             </div>
         </div>
     </div>
-</x-app-layout>
+</x-dashboard-layout>
