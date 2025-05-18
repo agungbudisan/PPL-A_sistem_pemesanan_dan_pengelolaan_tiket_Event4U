@@ -1,0 +1,33 @@
+steps:
+  # Buat .env file sebelum build Docker
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args: ['-c', 'echo "APP_KEY=" > .env']
+
+  # Build image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/github.com/agungbudisan/ppl-a_sistem_pemesanan_dan_pengelolaan_tiket_event4u:$COMMIT_SHA', '.']
+
+  # Push image ke Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/github.com/agungbudisan/ppl-a_sistem_pemesanan_dan_pengelolaan_tiket_event4u:$COMMIT_SHA']
+
+  # Deploy ke Cloud Run (sesuaikan dengan kebutuhan Anda)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'event4u-app'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/github.com/agungbudisan/ppl-a_sistem_pemesanan_dan_pengelolaan_tiket_event4u:$COMMIT_SHA'
+      - '--platform'
+      - 'managed'
+      - '--region'
+      - 'global'
+      - '--allow-unauthenticated'
+      - '--set-env-vars'
+      - 'APP_ENV=production'
+
+images:
+  - 'gcr.io/$PROJECT_ID/github.com/agungbudisan/ppl-a_sistem_pemesanan_dan_pengelolaan_tiket_event4u:$COMMIT_SHA'

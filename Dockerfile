@@ -20,12 +20,15 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Set working directory
 WORKDIR /var/www/html
 
-# Copy composer files and install dependencies
+# Copy composer files dan install dependencies
 COPY composer.json composer.lock ./
 RUN composer install --no-scripts --no-autoloader
 
-# Copy the rest of the application
+# Copy application files
 COPY . .
+
+# Pastikan .env file ada (jika tidak dibuat di cloudbuild.yaml)
+RUN if [ ! -f .env ]; then echo "APP_KEY=" > .env; fi
 
 # Generate optimized autoloader
 RUN composer dump-autoload --optimize
@@ -38,13 +41,8 @@ RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 RUN a2enmod rewrite
 COPY docker/apache.conf /etc/apache2/sites-available/000-default.conf
 
-# Generate application key if needed
-RUN php artisan key:generate --force
-
-# Cache configuration
-RUN php artisan config:cache
-RUN php artisan route:cache
-RUN php artisan view:cache
+# Generate application key (dengan || true agar tidak gagal build)
+RUN php artisan key:generate --force || true
 
 # Expose port 8080 (Cloud Run default)
 EXPOSE 8080
