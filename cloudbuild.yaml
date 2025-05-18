@@ -24,7 +24,7 @@ steps:
       - '--platform'
       - 'managed'
       - '--region'
-      - 'global'
+      - 'asia-southeast1'
       - '--allow-unauthenticated'
       - '--set-env-vars'
       - 'APP_ENV=production'
