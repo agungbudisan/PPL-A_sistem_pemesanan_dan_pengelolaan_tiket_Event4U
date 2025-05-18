@@ -20,7 +20,7 @@ class PaymentController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth')->only(['create', 'store', 'index', 'show', 'processMidtransPayment', 'finishMidtransPayment']);
+        $this->middleware('auth')->only(['create', 'store', 'index', 'show', 'processMidtransPayment', 'finishMidtransPayment', 'checkOrderStatus']);
         $this->middleware('admin')->only(['adminIndex', 'adminShow', 'updateStatus']);
     }
 
@@ -137,12 +137,8 @@ class PaymentController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
-        // Check if the order was created within the last hour
-        $orderCreatedAt = $order->order_date;
-        $now = now();
-        $diffInHours = $now->diffInHours($orderCreatedAt);
-
-        if ($diffInHours >= 1) {
+        // Check if the order is expired
+        if ($order->isExpired()) {
             return redirect()->route('orders.index')
                 ->with('error', 'Batas waktu pembayaran telah habis. Silakan buat pesanan baru.');
         }
@@ -167,12 +163,8 @@ class PaymentController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
-        // Check if the order was created within the last hour
-        $orderCreatedAt = $order->order_date;
-        $now = now();
-        $diffInHours = $now->diffInHours($orderCreatedAt);
-
-        if ($diffInHours >= 1) {
+        // Check if the order is expired
+        if ($order->isExpired()) {
             return redirect()->route('orders.index')
                 ->with('error', 'Batas waktu pembayaran telah habis. Silakan buat pesanan baru.');
         }
@@ -184,7 +176,6 @@ class PaymentController extends Controller
         }
 
         // Langsung arahkan ke pembayaran Midtrans
-        // return redirect()->route('payments.midtrans', $order);
         return $this->processMidtransPayment($order);
     }
 
@@ -203,12 +194,8 @@ class PaymentController extends Controller
                 ->with('info', 'Pembayaran untuk pesanan ini sudah selesai.');
         }
 
-        // Cek apakah order sudah melewati batas waktu pembayaran (1 jam)
-        $orderTime = $order->order_date;
-        $now = now();
-        $diffInHours = $now->diffInHours($orderTime);
-
-        if ($diffInHours >= 1) {
+        // Cek apakah order sudah melewati batas waktu
+        if ($order->isExpired()) {
             return redirect()->route('welcome')
                 ->with('error', 'Batas waktu pembayaran telah berakhir.');
         }
@@ -263,12 +250,8 @@ class PaymentController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
-        // Check if the order was created within the last hour
-        $orderCreatedAt = $order->order_date;
-        $now = now();
-        $diffInHours = $now->diffInHours($orderCreatedAt);
-
-        if ($diffInHours >= 1) {
+        // Check if the order is expired
+        if ($order->isExpired()) {
             return redirect()->route('orders.index')
                 ->with('error', 'Batas waktu pembayaran telah habis. Silakan buat pesanan baru.');
         }
@@ -298,6 +281,10 @@ class PaymentController extends Controller
                 // Buat ID transaksi unik
                 $transactionId = 'ORDER-' . $order->id . '-' . Str::random(8);
 
+                // Set waktu kedaluwarsa default
+                $defaultExpiryDuration = config('midtrans.expiry_durations.default', 60);
+                $expiryTime = now()->addMinutes($defaultExpiryDuration);
+
                 // Set parameter untuk Midtrans
                 $params = [
                     'transaction_details' => [
@@ -316,10 +303,19 @@ class PaymentController extends Controller
                             'name' => $order->ticket->event->title . ' - ' . $order->ticket->ticket_class,
                         ],
                     ],
+                    'expiry' => [
+                        'unit' => 'minute',
+                        'duration' => $defaultExpiryDuration
+                    ],
                     'callbacks' => [
                         'finish' => route('payments.midtrans.finish', $order->id),
                     ],
                 ];
+
+                // Tambahkan URL notifikasi jika dikonfigurasi
+                if (config('midtrans.append_notif_url', true)) {
+                    $params['callbacks']['notification'] = route('payments.midtrans.notification');
+                }
 
                 // Dapatkan Snap Token
                 $snapToken = \Midtrans\Snap::getSnapToken($params);
@@ -335,7 +331,12 @@ class PaymentController extends Controller
                 $payment->transaction_id = $transactionId;
                 $payment->snap_token = $snapToken;
                 $payment->payment_date = now();
+                $payment->expires_at = $expiryTime;
                 $payment->save();
+
+                // Update order expiry time
+                $order->expires_at = $expiryTime;
+                $order->save();
 
                 Log::info('New payment record created with snap token: ' . $snapToken);
 
@@ -348,7 +349,8 @@ class PaymentController extends Controller
         // Return view dengan snap token
         return view('payments.midtrans', [
             'order' => $order,
-            'snap_token' => $payment->snap_token
+            'snap_token' => $payment->snap_token,
+            'expires_at' => $payment->expires_at->timestamp * 1000 // Untuk JS countdown
         ]);
     }
 
@@ -366,70 +368,107 @@ class PaymentController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
+        // Cek apakah order sudah kedaluwarsa
+        if ($order->isExpired()) {
+            return redirect()->route('welcome')
+                ->with('error', 'Batas waktu pembayaran telah berakhir.');
+        }
+
         // Cek apakah sudah ada pembayaran
-        if ($order->payment) {
+        if ($order->payment && $order->payment->status === 'completed') {
             return redirect()->route('guest.orders.confirmation', $reference)
-                ->with('info', 'Pembayaran untuk order ini sudah dibuat.');
+                ->with('info', 'Pembayaran untuk pesanan ini sudah selesai.');
         }
 
-        try {
-            // Setting Midtrans configuration
-            \Midtrans\Config::$serverKey = config('midtrans.server_key');
-            \Midtrans\Config::$isProduction = config('midtrans.is_production');
-            \Midtrans\Config::$isSanitized = config('midtrans.is_sanitized');
-            \Midtrans\Config::$is3ds = config('midtrans.is_3ds');
+        // Gunakan pembayaran yang ada jika belum selesai
+        $payment = $order->payment;
+        $isExistingPayment = false;
 
-            // Buat ID transaksi unik
-            $transactionId = 'GUEST-' . $reference . '-' . Str::random(8);
+        if ($payment && $payment->status === 'pending' && $payment->snap_token) {
+            $isExistingPayment = true;
+            Log::info('Using existing guest payment record with snap token: ' . $payment->snap_token);
+        } else {
+            try {
+                // Setting Midtrans configuration
+                \Midtrans\Config::$serverKey = config('midtrans.server_key');
+                \Midtrans\Config::$isProduction = config('midtrans.is_production');
+                \Midtrans\Config::$isSanitized = config('midtrans.is_sanitized');
+                \Midtrans\Config::$is3ds = config('midtrans.is_3ds');
 
-            // Set parameter untuk Midtrans
-            $params = [
-                'transaction_details' => [
-                    'order_id' => $transactionId,
-                    'gross_amount' => (int) $order->total_price,
-                ],
-                'customer_details' => [
-                    'first_name' => $order->guest_name,
-                    'email' => $order->email,
-                    'phone' => $order->guest_phone,
-                ],
-                'item_details' => [
-                    [
-                        'id' => $order->ticket->id,
-                        'price' => (int) $order->ticket->price,
-                        'quantity' => $order->quantity,
-                        'name' => $order->ticket->event->title . ' - ' . $order->ticket->ticket_class,
+                // Buat ID transaksi unik
+                $transactionId = 'GUEST-' . $reference . '-' . Str::random(8);
+
+                // Set waktu kedaluwarsa default
+                $defaultExpiryDuration = config('midtrans.expiry_durations.default', 60);
+                $expiryTime = now()->addMinutes($defaultExpiryDuration);
+
+                // Set parameter untuk Midtrans
+                $params = [
+                    'transaction_details' => [
+                        'order_id' => $transactionId,
+                        'gross_amount' => (int) $order->total_price,
                     ],
-                ],
-                'callbacks' => [
-                    'finish' => route('guest.orders.confirmation', $reference),
-                ],
-            ];
+                    'customer_details' => [
+                        'first_name' => $order->guest_name,
+                        'email' => $order->email,
+                        'phone' => $order->guest_phone,
+                    ],
+                    'item_details' => [
+                        [
+                            'id' => $order->ticket->id,
+                            'price' => (int) $order->ticket->price,
+                            'quantity' => $order->quantity,
+                            'name' => $order->ticket->event->title . ' - ' . $order->ticket->ticket_class,
+                        ],
+                    ],
+                    'expiry' => [
+                        'unit' => 'minute',
+                        'duration' => $defaultExpiryDuration
+                    ],
+                    'callbacks' => [
+                        'finish' => route('guest.orders.confirmation', $reference),
+                    ],
+                ];
 
-            // Dapatkan Snap Token
-            $snapToken = \Midtrans\Snap::getSnapToken($params);
+                // Tambahkan URL notifikasi jika dikonfigurasi
+                if (config('midtrans.append_notif_url', true)) {
+                    $params['callbacks']['notification'] = route('payments.midtrans.notification');
+                }
 
-            // Buat payment record
-            $payment = Payment::create([
-                'method' => 'midtrans',
-                'status' => 'pending',
-                'transaction_id' => $transactionId,
-                'snap_token' => $snapToken,
-                'payment_date' => now(),
-                'order_id' => $order->id,
-                'guest_email' => $order->email,
-            ]);
+                // Dapatkan Snap Token
+                $snapToken = \Midtrans\Snap::getSnapToken($params);
 
-            // Return view dengan snap token
-            return view('guest.payments.midtrans', [
-                'order' => $order,
-                'snap_token' => $snapToken
-            ]);
+                // Buat payment record
+                $payment = new Payment([
+                    'method' => 'midtrans',
+                    'status' => 'pending',
+                    'transaction_id' => $transactionId,
+                    'snap_token' => $snapToken,
+                    'payment_date' => now(),
+                    'expires_at' => $expiryTime,
+                    'order_id' => $order->id,
+                    'guest_email' => $order->email,
+                ]);
+                $payment->save();
 
-        } catch (\Exception $e) {
-            Log::error('Midtrans Error: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+                // Update order expiry time
+                $order->expires_at = $expiryTime;
+                $order->save();
+
+                Log::info('New guest payment record created with snap token: ' . $snapToken);
+
+            } catch (\Exception $e) {
+                Log::error('Midtrans Error: ' . $e->getMessage());
+                return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+            }
         }
+
+        // Return view dengan snap token
+        return view('guest.payments.midtrans', [
+            'order' => $order,
+            'snap_token' => $payment->snap_token,
+            'expires_at' => $payment->expires_at->timestamp * 1000 // Untuk JS countdown
+        ]);
     }
 
     /**
@@ -479,6 +518,12 @@ class PaymentController extends Controller
 
                     return redirect()->route('orders.show', $order)
                         ->with('info', 'Pembayaran sedang dalam proses. Kami akan mengirim e-ticket setelah pembayaran dikonfirmasi.');
+                } else if ($transactionStatus == 'expire') {
+                    $payment->status = 'expired';
+                    $payment->save();
+
+                    return redirect()->route('orders.show', $order)
+                        ->with('error', 'Pembayaran telah kedaluwarsa. Silakan buat pesanan baru.');
                 } else {
                     $payment->status = 'failed';
                     $payment->save();
@@ -544,6 +589,15 @@ class PaymentController extends Controller
 
                     return redirect()->route('guest.orders.confirmation', $reference)
                         ->with('info', 'Pembayaran sedang dalam proses. Kami akan mengirim e-ticket setelah pembayaran dikonfirmasi.');
+                } else if ($transactionStatus == 'expire') {
+                    $payment->status = 'expired';
+                    $payment->save();
+
+                    // Hapus referensi dari session
+                    session()->forget('guest_order_reference');
+
+                    return redirect()->route('guest.orders.confirmation', $reference)
+                        ->with('error', 'Pembayaran telah kedaluwarsa. Silakan buat pesanan baru.');
                 } else {
                     $payment->status = 'failed';
                     $payment->save();
@@ -560,6 +614,167 @@ class PaymentController extends Controller
 
         return redirect()->route('guest.orders.confirmation', $reference)
             ->with('info', 'Status pembayaran akan diperbarui segera.');
+    }
+
+    /**
+     * Handle Midtrans notification callback
+     */
+    public function handleMidtransNotification(Request $request)
+    {
+        try {
+            $notificationBody = json_decode($request->getContent(), true);
+
+            if (!$notificationBody) {
+                Log::error('Invalid Midtrans notification format');
+                return response()->json(['status' => 'error', 'message' => 'Invalid notification format'], 400);
+            }
+
+            Log::info('Midtrans notification received: ' . json_encode($notificationBody));
+
+            $transactionStatus = $notificationBody['transaction_status'] ?? null;
+            $orderId = $notificationBody['order_id'] ?? null;
+            $paymentType = $notificationBody['payment_type'] ?? 'default';
+            $transactionId = $notificationBody['transaction_id'] ?? null;
+
+            if (!$orderId) {
+                Log::error('Missing order_id in Midtrans notification');
+                return response()->json(['status' => 'error', 'message' => 'Missing order_id'], 400);
+            }
+
+            // Find payment by transaction ID
+            $payment = Payment::where('transaction_id', $orderId)->first();
+
+            if (!$payment) {
+                Log::error('Payment record not found for transaction_id: ' . $orderId);
+                return response()->json(['status' => 'error', 'message' => 'Payment not found'], 404);
+            }
+
+            $order = $payment->order;
+            if (!$order) {
+                Log::error('Order not found for payment ID: ' . $payment->id);
+                return response()->json(['status' => 'error', 'message' => 'Order not found'], 404);
+            }
+
+            DB::beginTransaction();
+            try {
+                // Simpan detail metode pembayaran
+                $payment->payment_method_detail = $paymentType;
+
+                // Simpan instruksi pembayaran jika ada
+                if (isset($notificationBody['payment_instructions'])) {
+                    $payment->payment_instruction = json_encode($notificationBody['payment_instructions']);
+                }
+
+                // Update waktu kedaluwarsa berdasarkan metode pembayaran
+                if ($transactionStatus == 'pending') {
+                    // Perbarui waktu kedaluwarsa berdasarkan metode pembayaran
+                    $expiryDuration = $this->getExpiryDurationForPaymentType($paymentType);
+                    $newExpiryTime = now()->addMinutes($expiryDuration);
+
+                    $payment->expires_at = $newExpiryTime;
+                    $order->expires_at = $newExpiryTime;
+                    $order->save();
+
+                    Log::info("Updated expiry time for order {$order->id} to {$newExpiryTime} based on payment type {$paymentType}");
+                }
+
+                // Update status pembayaran berdasarkan notifikasi
+                if ($transactionStatus == 'settlement' || $transactionStatus == 'capture') {
+                    $payment->status = 'completed';
+
+                    // Process e-ticket hanya jika status sebelumnya bukan completed
+                    if ($payment->getOriginal('status') !== 'completed') {
+                        // Kurangi kuota tiket
+                        $order->ticket->decrement('quota_avail', $order->quantity);
+
+                        // Kirim e-ticket
+                        $isGuest = $order->user_id === null;
+                        Mail::to($order->email)->send(new SendETicket($order, $isGuest));
+
+                        Log::info('E-ticket sent to ' . ($isGuest ? 'guest' : 'user') . ': ' . $order->email);
+                    }
+                } elseif ($transactionStatus == 'pending') {
+                    $payment->status = 'pending';
+                } elseif ($transactionStatus == 'expire') {
+                    $payment->status = 'expired';
+                } elseif ($transactionStatus == 'cancel' || $transactionStatus == 'deny') {
+                    $payment->status = 'failed';
+                }
+
+                $payment->save();
+                DB::commit();
+
+                return response()->json(['status' => 'success']);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error('Failed to process Midtrans notification: ' . $e->getMessage());
+                return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+            }
+        } catch (\Exception $e) {
+            Log::error('Error processing Midtrans notification: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => 'Server error'], 500);
+        }
+    }
+
+    /**
+     * Get expiry duration based on payment type
+     */
+    private function getExpiryDurationForPaymentType($paymentType)
+    {
+        $mappings = [
+            'credit_card' => 'credit_card',
+            'bank_transfer' => 'bank_transfer',
+            'echannel' => 'echannel',
+            'gopay' => 'gopay',
+            'shopeepay' => 'shopeepay',
+            'qris' => 'qris',
+            'cstore' => 'cstore',
+            'akulaku' => 'akulaku',
+            'kredivo' => 'kredivo',
+        ];
+
+        $configKey = $mappings[$paymentType] ?? 'default';
+        return config("midtrans.expiry_durations.{$configKey}", 60); // Default 60 minutes if not configured
+    }
+
+    /**
+     * Check and get order status via AJAX
+     */
+    public function checkOrderStatus(Order $order)
+    {
+        // Validasi akses
+        if ($order->user_id !== Auth::id()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        // Ambil status pembayaran terbaru
+        $payment = $order->payment;
+        $status = $payment ? $payment->status : 'pending';
+
+        // Data waktu kedaluwarsa terbaru
+        $expiresAt = $payment && $payment->expires_at
+            ? $payment->expires_at->timestamp * 1000 // Konversi ke milidetik
+            : ($order->expires_at ? $order->expires_at->timestamp * 1000 : null);
+
+        // Data metode pembayaran
+        $paymentMethod = $payment ? $payment->payment_method_detail : null;
+
+        // Data instruksi pembayaran
+        $instructions = null;
+        if ($payment && $payment->payment_instruction) {
+            try {
+                $instructions = json_decode($payment->payment_instruction, true);
+            } catch (\Exception $e) {
+                Log::error('Failed to decode payment instructions: ' . $e->getMessage());
+            }
+        }
+
+        return response()->json([
+            'status' => $status,
+            'payment_method' => $paymentMethod,
+            'expires_at' => $expiresAt,
+            'instructions' => $instructions
+        ]);
     }
 
     /**
@@ -583,7 +798,7 @@ class PaymentController extends Controller
     public function updateStatus(Request $request, Payment $payment)
     {
         $request->validate([
-            'status' => 'required|string|in:pending,completed,cancelled,failed'
+            'status' => 'required|string|in:pending,completed,expired,cancelled,failed'
         ]);
 
         $oldStatus = $payment->status;
@@ -657,5 +872,47 @@ class PaymentController extends Controller
         }
 
         return view('guest.orders.confirmation', compact('order'));
+    }
+
+    /**
+     * Check and get order status via AJAX for guest
+     */
+    public function checkOrderStatusGuest($reference)
+    {
+        $order = Order::where('reference', $reference)->firstOrFail();
+
+        // Verifikasi referensi di session
+        if (!session('guest_order_reference') || session('guest_order_reference') !== $reference) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        // Ambil status pembayaran terbaru
+        $payment = $order->payment;
+        $status = $payment ? $payment->status : 'pending';
+
+        // Data waktu kedaluwarsa terbaru
+        $expiresAt = $payment && $payment->expires_at
+            ? $payment->expires_at->timestamp * 1000 // Konversi ke milidetik
+            : ($order->expires_at ? $order->expires_at->timestamp * 1000 : null);
+
+        // Data metode pembayaran
+        $paymentMethod = $payment ? $payment->payment_method_detail : null;
+
+        // Data instruksi pembayaran
+        $instructions = null;
+        if ($payment && $payment->payment_instruction) {
+            try {
+                $instructions = json_decode($payment->payment_instruction, true);
+            } catch (\Exception $e) {
+                Log::error('Failed to decode payment instructions: ' . $e->getMessage());
+            }
+        }
+
+        return response()->json([
+            'status' => $status,
+            'payment_method' => $paymentMethod,
+            'expires_at' => $expiresAt,
+            'instructions' => $instructions
+        ]);
     }
 }

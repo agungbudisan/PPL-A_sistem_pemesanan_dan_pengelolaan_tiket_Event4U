@@ -22,6 +22,10 @@ Route::get('/events', [EventController::class, 'index'])->name('events.index');
 Route::get('/events/{event}', [EventController::class, 'show'])->name('events.show')->middleware('web');
 Route::get('/tickets/{ticket}', [TicketController::class, 'show'])->name('tickets.show');
 
+// Midtrans Notification Handler (harus dapat diakses secara publik tanpa autentikasi)
+Route::post('payments/midtrans/notification', [PaymentController::class, 'handleMidtransNotification'])
+    ->name('payments.midtrans.notification');
+
 // Unauthenticated Order Process
 Route::prefix('guest')->group(function () {
     Route::get('/tickets/{ticket}/order', [OrderController::class, 'guestCreate'])->name('guest.orders.create');
@@ -36,6 +40,10 @@ Route::prefix('guest')->group(function () {
         ->name('guest.payments.midtrans');
     Route::get('/orders/{reference}/payment/midtrans/finish', [PaymentController::class, 'finishMidtransPaymentGuest'])
         ->name('guest.payments.midtrans.finish');
+
+    // Guest payment status check (opsional, jika ingin memberi guest kemampuan untuk memeriksa status)
+    Route::get('/orders/{reference}/check-status', [PaymentController::class, 'checkOrderStatusGuest'])
+        ->name('guest.payments.check-status');
 });
 
 /*
@@ -73,6 +81,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/{order}/payment/midtrans/finish', [PaymentController::class, 'finishMidtransPayment'])
             ->name('payments.midtrans.finish');
     });
+
+    // Payment status check route (untuk AJAX)
+    Route::get('payments/{order}/check-status', [PaymentController::class, 'checkOrderStatus'])
+        ->name('payments.check-status');
 });
 
 /*

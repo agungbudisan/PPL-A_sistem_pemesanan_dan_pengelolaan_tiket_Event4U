@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('guest_name')->nullable();
             $table->string('guest_phone')->nullable();
             $table->dateTime('order_date');
+            $table->timestamp('expires_at')->nullable();
             $table->foreignId('ticket_id')->constrained('tickets');
             $table->foreignId('user_id')->nullable()->constrained('users');
             $table->timestamps();

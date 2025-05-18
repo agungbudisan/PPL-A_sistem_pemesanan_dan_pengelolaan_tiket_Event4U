@@ -105,7 +105,7 @@ class Event4USeeder extends Seeder
         $now = Carbon::now();
         $events = [
             [
-                'title' => 'Konser Musik Tahunan 2023',
+                'title' => 'Konser Musik Tahunan 2025',
                 'description' => 'Konser musik tahunan dengan menampilkan berbagai artis terkenal. Akan ada penampilan spesial dari bintang tamu internasional.',
                 'location' => 'Gelora Bung Karno, Jakarta',
                 'start_event' => $now->copy()->addDays(30),
@@ -285,6 +285,11 @@ class Event4USeeder extends Seeder
                 $isUserOrder = rand(0, 10) > 8; // 20% chance for user order vs guest order
                 $orderDate = now()->subDays(rand(1, 30))->subHours(rand(1, 24));
 
+                // Set expiration time - for completed orders in the past, for pending orders in the future
+                $expiresAt = rand(0, 1)
+                    ? $orderDate->copy()->addHour() // Default 1 hour expiry
+                    : $orderDate->copy()->addHours(rand(1, 24)); // Random expiry time
+
                 // Generate reference for tracking
                 $reference = 'TIX' . strtoupper(substr(md5(uniqid()), 0, 8));
 
@@ -298,6 +303,7 @@ class Event4USeeder extends Seeder
                     'quantity' => $quantity,
                     'email' => $isUserOrder ? $user->email : 'customer' . rand(1, 1000) . '@example.com',
                     'order_date' => $orderDate,
+                    'expires_at' => $expiresAt, // Add expires_at field
                     'ticket_id' => $ticket->id,
                 ];
 
@@ -326,17 +332,23 @@ class Event4USeeder extends Seeder
      */
     private function createPayment(Order $order)
     {
-        $paymentMethods = ['Credit Card', 'Bank Transfer', 'E-Wallet', 'Virtual Account'];
-        $paymentStatuses = ['completed', 'pending', 'cancelled', 'failed'];
+        // Midtrans-compatible payment methods
+        $paymentMethods = ['midtrans'];
+        $paymentMethodDetails = [
+            'credit_card', 'bank_transfer', 'gopay', 'shopeepay',
+            'qris', 'cstore', 'akulaku', 'kredivo'
+        ];
 
-        // Weighted statuses (75% completed, 15% pending, 5% cancelled, 5% failed)
+        $paymentStatuses = ['completed', 'pending', 'expired', 'failed'];
+
+        // Weighted statuses (75% completed, 15% pending, 5% expired, 5% failed)
         $statusRand = rand(1, 100);
         $status = $statusRand <= 75
             ? 'completed'
             : ($statusRand <= 90
             ? 'pending'
             : ($statusRand <= 95
-                ? 'cancelled'
+                ? 'expired'
                 : 'failed'));
 
         // Set payment date for all statuses to avoid NULL
@@ -344,19 +356,111 @@ class Event4USeeder extends Seeder
             ? $order->order_date->addMinutes(rand(5, 60))
             : $order->order_date;
 
+        // Create Midtrans-like transaction ID
+        $transactionId = 'ORDER-' . $order->id . '-' . Str::random(8);
+
+        // Create random snap token for simulating Midtrans integration
+        $snapToken = Str::random(32);
+
+        // Get expiry time based on payment method detail
+        $paymentMethodDetail = $paymentMethodDetails[array_rand($paymentMethodDetails)];
+        $expiryDuration = $this->getExpiryDurationForPaymentType($paymentMethodDetail);
+        $expiresAt = now()->addMinutes($expiryDuration);
+
+        // For completed payments, expires_at should be in the past
+        if ($status === 'completed') {
+            $expiresAt = $paymentDate->copy()->subMinutes(rand(5, 30));
+        }
+        // For failed/expired payments, expires_at should be in the past
+        elseif (in_array($status, ['expired', 'failed'])) {
+            $expiresAt = $paymentDate->copy()->subMinutes(rand(1, 10));
+        }
+
         $paymentData = [
             'method' => $paymentMethods[array_rand($paymentMethods)],
+            'payment_method_detail' => $paymentMethodDetail,
             'status' => $status,
+            'transaction_id' => $transactionId,
+            'snap_token' => $snapToken,
             'payment_date' => $paymentDate,
+            'expires_at' => $expiresAt,
             'order_id' => $order->id,
         ];
 
+        // Add sample payment instructions for some payment methods
+        if (in_array($paymentMethodDetail, ['bank_transfer', 'cstore']) && in_array($status, ['pending', 'completed'])) {
+            $instructions = $this->generatePaymentInstructions($paymentMethodDetail);
+            if (!empty($instructions)) {
+                $paymentData['payment_instruction'] = json_encode($instructions);
+            }
+        }
+
         // Add guest email for some orders
-        if (isset($order->guest_name) && rand(0, 1)) {
+        if (isset($order->guest_name)) {
             $paymentData['guest_email'] = $order->email; // Use same email from order
         }
 
         Payment::create($paymentData);
+    }
+
+    /**
+     * Get expiry duration based on payment type
+     *
+     * @param string $paymentType
+     * @return int Minutes until expiry
+     */
+    private function getExpiryDurationForPaymentType($paymentType)
+    {
+        $durations = [
+            'credit_card' => 60, // 1 hour
+            'bank_transfer' => 1440, // 24 hours
+            'echannel' => 1440, // 24 hours
+            'gopay' => 15, // 15 minutes
+            'shopeepay' => 15, // 15 minutes
+            'qris' => 15, // 15 minutes
+            'cstore' => 1440, // 24 hours
+            'akulaku' => 1440, // 24 hours
+            'kredivo' => 1440, // 24 hours
+            'default' => 60, // 1 hour default
+        ];
+
+        return $durations[$paymentType] ?? $durations['default'];
+    }
+
+    /**
+     * Generate fake payment instructions for testing
+     *
+     * @param string $paymentType
+     * @return array|null
+     */
+    private function generatePaymentInstructions($paymentType)
+    {
+        if ($paymentType === 'bank_transfer') {
+            $banks = ['bca', 'bni', 'bri', 'mandiri', 'permata'];
+            $bank = $banks[array_rand($banks)];
+
+            return [
+                [
+                    'bank' => strtoupper($bank),
+                    'va_number' => rand(100000000000, 999999999999),
+                    'instruction' => "Transfer to virtual account number before the payment expires"
+                ]
+            ];
+        }
+        elseif ($paymentType === 'cstore') {
+            $stores = ['indomaret', 'alfamart'];
+            $store = $stores[array_rand($stores)];
+
+            return [
+                [
+                    'store' => ucfirst($store),
+                    'payment_code' => rand(10000000, 99999999),
+                    'instruction' => "Pay at any $store outlet with the payment code"
+                ]
+            ];
+        }
+
+        return null;
     }
 
     /**
