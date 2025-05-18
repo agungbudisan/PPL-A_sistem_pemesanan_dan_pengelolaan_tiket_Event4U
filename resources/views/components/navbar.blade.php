@@ -2,7 +2,7 @@
     <div class="container mx-auto flex justify-between items-center px-6">
         <!-- Logo -->
         <a href="{{ route('welcome') }}" class="flex items-center">
-            <h1 class="text-[#F7ECAC] text-2xl font-bold">Event 4 U</h1>
+            <h1 class="text-[#F7ECAC] text-2xl font-bold">Event4U</h1>
         </a>
 
         <!-- Mobile menu button -->

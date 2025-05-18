@@ -22,6 +22,10 @@ Route::get('/events', [EventController::class, 'index'])->name('events.index');
 Route::get('/events/{event}', [EventController::class, 'show'])->name('events.show')->middleware('web');
 Route::get('/tickets/{ticket}', [TicketController::class, 'show'])->name('tickets.show');
 
+// Midtrans Notification Handler (harus dapat diakses secara publik tanpa autentikasi)
+Route::post('payments/midtrans/notification', [PaymentController::class, 'handleMidtransNotification'])
+    ->name('payments.midtrans.notification');
+
 // Unauthenticated Order Process
 Route::prefix('guest')->group(function () {
     Route::get('/tickets/{ticket}/order', [OrderController::class, 'guestCreate'])->name('guest.orders.create');
@@ -36,6 +40,10 @@ Route::prefix('guest')->group(function () {
         ->name('guest.payments.midtrans');
     Route::get('/orders/{reference}/payment/midtrans/finish', [PaymentController::class, 'finishMidtransPaymentGuest'])
         ->name('guest.payments.midtrans.finish');
+
+    // Guest payment status check (opsional, jika ingin memberi guest kemampuan untuk memeriksa status)
+    Route::get('/orders/{reference}/check-status', [PaymentController::class, 'checkOrderStatusGuest'])
+        ->name('guest.payments.check-status');
 });
 
 /*
@@ -50,16 +58,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
         return view('dashboard');
     })->name('dashboard');
 
-    // Profile
-    Route::prefix('profile')->group(function () {
-        Route::get('/', [ProfileController::class, 'edit'])->name('profile.edit');
-        Route::patch('/', [ProfileController::class, 'update'])->name('profile.update');
-        Route::delete('/', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::prefix('dashboard')->group(function () {
+        // History Orders
+        Route::get('/orders-history', [OrderController::class, 'index'])->name('orders.index');
+
+        // Profile routes
+        Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+        Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+        Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     });
 
     // Order Process
     Route::prefix('orders')->group(function () {
-        Route::get('/', [OrderController::class, 'index'])->name('orders.index');
         Route::get('/tickets/{ticket}/create', [OrderController::class, 'create'])->name('orders.create');
         Route::post('/tickets/{ticket}', [OrderController::class, 'store'])->name('orders.store');
         Route::get('/{order}', [OrderController::class, 'show'])->name('orders.show');
@@ -73,6 +83,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/{order}/payment/midtrans/finish', [PaymentController::class, 'finishMidtransPayment'])
             ->name('payments.midtrans.finish');
     });
+
+    // Payment status check route (untuk AJAX)
+    Route::get('payments/{order}/check-status', [PaymentController::class, 'checkOrderStatus'])
+        ->name('payments.check-status');
 });
 
 /*
@@ -109,11 +123,12 @@ Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
 
     // Payment Management
     Route::get('/payments', [PaymentController::class, 'adminIndex'])->name('payments.index');
-    Route::post('/payments/{payment}/update-status', [PaymentController::class, 'updateStatus'])->name('payments.updateStatus');
+    Route::get('/payments/{payment}', [PaymentController::class, 'adminShow'])->name('payments.show');
+    Route::put('/payments/{payment}/update-status', [PaymentController::class, 'updateStatus'])->name('payments.updateStatus');
 
     // Export Routes
-    Route::get('/payments/export', [PaymentController::class, 'export'])->name('payments.export');
-    Route::get('/payments/export-pdf', [PaymentController::class, 'exportPdf'])->name('payments.export-pdf');
+    // Route::get('/payments/export', [PaymentController::class, 'export'])->name('payments.export');
+    // Route::get('/payments/export-pdf', [PaymentController::class, 'exportPdf'])->name('payments.export-pdf');
 
     Route::get('/analytics/export-excel/{eventId?}', [DashboardController::class, 'exportExcel'])->name('analytics.exportExcel');
     Route::get('/analytics/export-pdf/{eventId?}', [DashboardController::class, 'exportPdf'])->name('analytics.exportPdf');

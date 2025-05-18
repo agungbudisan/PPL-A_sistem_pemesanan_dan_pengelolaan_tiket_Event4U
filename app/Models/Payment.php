@@ -22,6 +22,8 @@ class Payment extends Model
         'order_id',
         'transaction_id',
         'snap_token',
+        'payment_instruction',
+        'expires_at',
         'payment_type',
         'payment_data'
     ];
@@ -33,7 +35,14 @@ class Payment extends Model
      */
     protected $casts = [
         'payment_date' => 'datetime',
+        'expires_at' => 'datetime',
     ];
+
+
+    public function isExpired()
+    {
+        return $this->expires_at && now()->isAfter($this->expires_at);
+    }
 
     /**
      * Get the order that owns the payment.

@@ -13,6 +13,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use App\Exports\AnalyticsExport;
 use Illuminate\Routing\Controller;
 use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Str;
 
 class DashboardController extends Controller
 {
@@ -142,15 +143,24 @@ class DashboardController extends Controller
         // Ambil data yang diperlukan untuk analitik, sama seperti di method analytics()
         $data = $this->getAnalyticsData($eventId);
 
+        // Jika data kosong (tidak ada event yang dipilih), gunakan nama file default
+        if (empty($data)) {
+            return Excel::download(new AnalyticsExport(null, 0, 0, []), 'all-events-analytics-'.now()->format('Y-m-d').'.xlsx');
+        }
+
+        // Buat nama file yang bersih (tanpa karakter yang tidak diperbolehkan dalam nama file)
+        $eventName = $data['event']->title;
+        $safeEventName = Str::slug($eventName);
+        $fileName = 'analytics-'.$safeEventName.'-'.$eventId.'-'.now()->format('Y-m-d').'.xlsx';
+
         // Pastikan data ada dan valid
         return Excel::download(new AnalyticsExport(
             $data['event'],             // Event
             $data['totalSales'],        // Total Sales
             $data['totalTicketsSold'],  // Total Tickets Sold
             $data['ticketTypes']        // Ticket Types
-        ), 'analytics.xlsx');
+        ), $fileName);
     }
-
 
     // Export to PDF
     public function exportPdf($eventId = null)
@@ -158,10 +168,21 @@ class DashboardController extends Controller
         // Ambil data yang diperlukan untuk analitik, sama seperti di method analytics()
         $data = $this->getAnalyticsData($eventId);
 
+        // Jika data kosong (tidak ada event yang dipilih), gunakan nama file default
+        if (empty($data)) {
+            $pdf = Pdf::loadView('admin.analytics_pdf', ['event' => null]);
+            return $pdf->download('all-events-analytics-'.now()->format('Y-m-d').'.pdf');
+        }
+
+        // Buat nama file yang bersih (tanpa karakter yang tidak diperbolehkan dalam nama file)
+        $eventName = $data['event']->title;
+        $safeEventName = Str::slug($eventName);
+        $fileName = 'analytics-'.$safeEventName.'-'.$eventId.'-'.now()->format('Y-m-d').'.pdf';
+
         // Menggunakan DomPDF untuk render PDF
         $pdf = Pdf::loadView('admin.analytics_pdf', $data);
 
-        return $pdf->download('analytics.pdf');
+        return $pdf->download($fileName);
     }
 
     protected function getAnalyticsData($eventId)

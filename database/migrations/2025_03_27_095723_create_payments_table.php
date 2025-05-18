@@ -14,10 +14,13 @@ return new class extends Migration
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
             $table->string('method');
+            $table->string('payment_method_detail')->nullable();
             $table->string('status');
             $table->string('guest_email')->nullable();
             $table->dateTime('payment_date');
+            $table->timestamp('expires_at')->nullable();
             $table->foreignId('order_id')->constrained('orders');
+            $table->text('payment_instruction')->nullable();
             $table->timestamps();
         });
     }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Konfirmasi Pesanan - {{ $order->ticket->event->title }} - Event 4 U</title>
+    <title>Informasi Pesanan - {{ $order->ticket->event->title }} - Event 4 U</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -22,12 +22,24 @@
                 <span class="mx-2">/</span>
                 <a href="{{ route('events.show', $order->ticket->event) }}" class="hover:text-[#7B0015]">{{ $order->ticket->event->title }}</a>
                 <span class="mx-2">/</span>
-                <span class="text-gray-700">Konfirmasi</span>
+                <span class="text-gray-700">Detail Pesanan</span>
             </nav>
 
             @if (session('success'))
             <div class="mb-6 p-4 bg-green-100 border-l-4 border-green-500 text-green-700 rounded-md">
                 {{ session('success') }}
+            </div>
+            @endif
+
+            @if (session('error'))
+            <div class="mb-6 p-4 bg-red-100 border-l-4 border-red-500 text-red-700 rounded-md">
+                {{ session('error') }}
+            </div>
+            @endif
+
+            @if (session('info'))
+            <div class="mb-6 p-4 bg-blue-100 border-l-4 border-blue-500 text-blue-700 rounded-md">
+                {{ session('info') }}
             </div>
             @endif
 
@@ -48,10 +60,34 @@
                     <div class="w-full max-w-md bg-gray-50 p-4 rounded-lg mb-4">
                         <div class="flex justify-between mb-1">
                             <span class="text-gray-600">Status Pembayaran:</span>
-                            <span class="px-2 py-1 text-xs rounded-full {{ $order->payment->status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
-                                {{ $order->payment->status === 'completed' ? 'Sukses' : 'Menunggu Konfirmasi' }}
+                            @php
+                                $statusClass = 'bg-yellow-100 text-yellow-800';
+                                $statusText = 'Menunggu Pembayaran';
+
+                                if($order->payment) {
+                                    if($order->payment->status === 'completed') {
+                                        $statusClass = 'bg-green-100 text-green-800';
+                                        $statusText = 'Sukses';
+                                    } elseif($order->payment->status === 'pending') {
+                                        $statusClass = 'bg-yellow-100 text-yellow-800';
+                                        $statusText = 'Menunggu Konfirmasi';
+                                    } elseif($order->payment->status === 'failed') {
+                                        $statusClass = 'bg-red-100 text-red-800';
+                                        $statusText = 'Gagal';
+                                    } elseif($order->payment->status === 'cancelled') {
+                                        $statusClass = 'bg-gray-100 text-gray-800';
+                                        $statusText = 'Dibatalkan';
+                                    }
+                                } else {
+                                    $statusClass = 'bg-yellow-100 text-yellow-800';
+                                    $statusText = 'Belum Dibayar';
+                                }
+                            @endphp
+                            <span class="px-2 py-1 text-xs rounded-full {{ $statusClass }}">
+                                {{ $statusText }}
                             </span>
                         </div>
+                        @if($order->payment)
                         <div class="flex justify-between mb-1">
                             <span class="text-gray-600">Metode Pembayaran:</span>
                             <span>
@@ -70,11 +106,14 @@
                             <span class="text-gray-600">Tanggal Pembayaran:</span>
                             <span>{{ $order->payment->payment_date->format('d M Y, H:i') }}</span>
                         </div>
+                        @endif
                     </div>
 
+                    @if($order->payment && $order->payment->status === 'completed')
                     <p class="text-sm text-gray-500 mb-6">
                         E-ticket akan dikirim ke email Anda: <span class="font-medium">{{ $order->email }}</span>
                     </p>
+                    @endif
 
                     <div class="flex flex-col sm:flex-row gap-3 w-full max-w-md">
                         <a href="{{ route('events.index') }}" class="flex-1 py-2 px-4 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg text-center transition duration-300">
@@ -83,17 +122,33 @@
                         <a href="{{ route('orders.index') }}" class="flex-1 py-2 px-4 bg-gray-800 hover:bg-black text-white font-medium rounded-lg text-center transition duration-300">
                             Lihat Pesanan Saya
                         </a>
-                        @if($order->payment->status === 'completed')
-                        <button type="button" onclick="showETicket()" class="flex-1 py-2 px-4 bg-[#7B0015] hover:bg-[#950019] text-white font-medium rounded-lg text-center transition duration-300">
-                            Lihat E-Ticket
-                        </button>
+
+                        @php
+                            $orderTime = $order->order_date;
+                            $now = now();
+                            $diffInHours = $now->diffInHours($orderTime);
+                            $paymentExpired = $diffInHours >= 1;
+                        @endphp
+
+                        @if($order->payment && $order->payment->status === 'completed')
+                            <button type="button" onclick="showETicket()" class="flex-1 py-2 px-4 bg-[#7B0015] hover:bg-[#950019] text-white font-medium rounded-lg text-center transition duration-300">
+                                Lihat E-Ticket
+                            </button>
+                        @elseif(!$paymentExpired && (!$order->payment || $order->payment->status === 'pending' || $order->payment->status === 'failed'))
+                            <a href="{{ route('payments.midtrans', $order) }}" class="flex-1 py-2 px-4 bg-[#7B0015] hover:bg-[#950019] text-white font-medium rounded-lg text-center transition duration-300">
+                                Bayar Sekarang
+                            </a>
+                        @elseif($paymentExpired && (!$order->payment || $order->payment->status !== 'completed'))
+                            <span class="flex-1 py-2 px-4 bg-gray-200 text-gray-500 font-medium rounded-lg text-center transition duration-300">
+                                Pembayaran Kedaluwarsa
+                            </span>
                         @endif
                     </div>
                 </div>
             </div>
 
             <!-- E-Ticket Card -->
-            @if($order->payment->status === 'completed')
+            @if($order->payment && $order->payment->status === 'completed')
             <div class="bg-white rounded-xl shadow-md overflow-hidden mb-6" id="e-ticket" style="display: none;">
                 <div class="bg-gradient-to-r from-[#7B0015] to-[#AF0020] p-4 text-white">
                     <div class="flex justify-between items-center">
@@ -252,6 +307,58 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Payment Action Button for Pending/Failed Payments -->
+                    @php
+                        $orderTime = $order->order_date;
+                        $now = now();
+                        $diffInHours = $now->diffInHours($orderTime);
+                        $paymentExpired = $diffInHours >= 1;
+                    @endphp
+
+                    @if(!$paymentExpired && (!$order->payment || $order->payment->status === 'pending' || $order->payment->status === 'failed'))
+                    <div class="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-exclamation-circle text-yellow-500 mt-1"></i>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-yellow-800">
+                                    Pembayaran Belum Selesai
+                                </h3>
+                                <div class="mt-2 text-sm text-yellow-700">
+                                    <p>Pesanan Anda belum dibayar atau pembayaran masih dalam proses. Silakan selesaikan pembayaran sebelum batas waktu berakhir.</p>
+                                </div>
+                                <div class="mt-4">
+                                    <a href="{{ route('payments.midtrans', $order) }}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest bg-[#7B0015] hover:bg-[#950019] focus:outline-none focus:border-[#950019] focus:ring ring-red-300 disabled:opacity-25 transition ease-in-out duration-150">
+                                        Bayar Sekarang
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @elseif($paymentExpired && (!$order->payment || $order->payment->status !== 'completed'))
+                    <div class="bg-gray-50 border border-gray-200 p-4 rounded-lg">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-clock text-gray-500 mt-1"></i>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-gray-800">
+                                    Pembayaran Kedaluwarsa
+                                </h3>
+                                <div class="mt-2 text-sm text-gray-700">
+                                    <p>Batas waktu pembayaran telah berakhir. Silakan buat pesanan baru jika Anda masih ingin membeli tiket untuk event ini.</p>
+                                </div>
+                                <div class="mt-4">
+                                    <a href="{{ route('events.show', $order->ticket->event) }}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest bg-white hover:bg-gray-50 focus:outline-none focus:border-gray-300 focus:ring ring-gray-200 disabled:opacity-25 transition ease-in-out duration-150">
+                                        Lihat Detail Event
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
 
                     <div>
                         <h3 class="font-semibold mb-2 text-lg">Customer Support</h3>
