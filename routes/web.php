@@ -58,16 +58,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
         return view('dashboard');
     })->name('dashboard');
 
-    // Profile
-    Route::prefix('profile')->group(function () {
-        Route::get('/', [ProfileController::class, 'edit'])->name('profile.edit');
-        Route::patch('/', [ProfileController::class, 'update'])->name('profile.update');
-        Route::delete('/', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::prefix('dashboard')->group(function () {
+        // History Orders
+        Route::get('/orders-history', [OrderController::class, 'index'])->name('orders.index');
+
+        // Profile routes
+        Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+        Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+        Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     });
 
     // Order Process
     Route::prefix('orders')->group(function () {
-        Route::get('/', [OrderController::class, 'index'])->name('orders.index');
         Route::get('/tickets/{ticket}/create', [OrderController::class, 'create'])->name('orders.create');
         Route::post('/tickets/{ticket}', [OrderController::class, 'store'])->name('orders.store');
         Route::get('/{order}', [OrderController::class, 'show'])->name('orders.show');
