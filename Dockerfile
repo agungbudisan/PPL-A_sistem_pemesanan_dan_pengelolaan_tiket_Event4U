@@ -1,51 +1,73 @@
-FROM php:8.2-apache
+# ========== Build Stage ==========
+FROM php:8.2-fpm AS builder
 
-# Install dependensi sistem
-RUN apt-get update && apt-get install -y \
-    libpng-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
-    libzip-dev \
-    unzip \
+RUN apt update && apt install -y \
     git \
     curl \
+    libpng-dev \
     libonig-dev \
     libxml2-dev \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
+    unzip \
+    zlib1g-dev \
+    libzip-dev \
+    libpq-dev \
+    && apt clean && rm -rf /var/lib/apt/lists/*
 
-# Instal Composer
+RUN docker-php-ext-install pdo_mysql pdo_pgsql pgsql mbstring exif pcntl bcmath gd zip
+
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Set working directory
-WORKDIR /var/www/html
+WORKDIR /var/www
 
-# Copy composer files dan install dependencies
-COPY composer.json composer.lock ./
-RUN composer install --no-scripts --no-autoloader
-
-# Copy application files
 COPY . .
 
-# Pastikan .env file ada (jika tidak dibuat di cloudbuild.yaml)
-RUN if [ ! -f .env ]; then echo "APP_KEY=" > .env; fi
+RUN composer install
 
-# Generate optimized autoloader
-RUN composer dump-autoload --optimize
+RUN php artisan storage:link || true
 
-# Set permissions
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
-RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+# ========== Runtime Stage ==========
+FROM php:8.2-fpm-alpine
 
-# Configure Apache
-RUN a2enmod rewrite
-COPY docker/apache.conf /etc/apache2/sites-available/000-default.conf
+RUN apk add --no-cache \
+    nginx \
+    supervisor \
+    git \
+    curl \
+    libpng \
+    libxml2 \
+    zlib \
+    libzip \
+    oniguruma \
+    libpq \
+    && apk add --no-cache --virtual .build-deps \
+    $PHPIZE_DEPS \
+    libpng-dev \
+    libxml2-dev \
+    zlib-dev \
+    libzip-dev \
+    oniguruma-dev \
+    postgresql-dev \
+    && docker-php-ext-install pdo_mysql pdo_pgsql pgsql mbstring exif pcntl bcmath gd zip \
+    && apk del .build-deps
 
-# Generate application key (dengan || true agar tidak gagal build)
-RUN php artisan key:generate --force || true
+WORKDIR /var/www
 
-# Expose port 8080 (Cloud Run default)
-EXPOSE 8080
+COPY --from=builder /var/www /var/www
+COPY --from=builder /usr/bin/composer /usr/bin/composer
 
-# Start Apache on port 8080
-CMD sed -i "s/80/8080/g" /etc/apache2/sites-available/000-default.conf /etc/apache2/ports.conf && apache2-foreground
+COPY docker-utils/nginx/nginx.conf /etc/nginx/nginx.conf
+COPY docker-utils/nginx/default.conf /etc/nginx/conf.d/default.conf
+COPY docker-utils/supervisord.conf /etc/supervisord.conf
+
+RUN mkdir -p /var/www/storage/app/public \
+    && mkdir -p /var/www/bootstrap/cache \
+    && mkdir -p /var/www/public/storage \
+    && ln -sf /var/www/storage/app/public /var/www/public/storage \
+    && chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache /var/www/vendor /var/www/public
+
+RUN chmod -R 775 /var/www/storage /var/www/bootstrap/cache
+
+EXPOSE 80
+
+# Run Supervisor
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
